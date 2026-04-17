@@ -1,5 +1,5 @@
-##########文件说明###########
-positive：正样本数据
-negative：负样本数据
-train+vali.csv：二分类模型的训练所用数据
-test.csv：二分类模型的独立测试所用数据
+##########File Description###########
+positive: Positive samples
+negative: Negative samples
+train+vali.csv: Training and validation data for the classification model
+test.csv: Test data for the classification model
