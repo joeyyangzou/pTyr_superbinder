@@ -2,14 +2,14 @@
 use strict;
 use warnings;
 
-# 输入和输出文件名
+# Input and output filenames
 my ($input_file,$output_file) = @ARGV;
 
-# 打开输入和输出文件
+# Open input and output files
 open(my $in, '<', $input_file) or die "Cannot open file $input_file: $!";
 open(my $out, '>', $output_file) or die "Cannot open file $output_file: $!";
 
-# 读取并处理每一条记录（每四行为一条记录）
+# Read and process each record (every four lines is one record)
 while (my $header = <$in>) {
     my $sequence = <$in>;
     my $plus = <$in>;
@@ -18,7 +18,7 @@ chomp $header;
 chomp $sequence;
 chomp $plus;
 chomp $quality;
-    # 删除指定模式前后的序列，保留模式及其之间的部分
+    # Delete the sequence before and after the specified pattern, keeping the pattern and everything in between
     if ($sequence =~ /(CAGGCAGAAGAGTGGTAC.*GCCCAGTTTGAAACA)/) {
         my $match = $1;
         my $start = $-[0];
@@ -33,14 +33,14 @@ chomp $quality;
         $quality = substr($quality, $start, $end - $start);
     }
 
-    # 输出处理后的记录
+    # Output the processed record
     print $out $header . "\n";
     print $out $sequence . "\n";
     print $out $plus . "\n";
     print $out $quality . "\n";
 }
 
-# 关闭文件句柄
+# Close file handles
 close($in);
 close($out);
 

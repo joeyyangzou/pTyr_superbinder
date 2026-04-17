@@ -2,7 +2,7 @@
 use strict;
 use warnings;
 
-# 打开并读取第二个表，将序列和对应的值存储在哈希表中
+# Open and read the second table, storing sequences and their corresponding values in a hash
 my %values;
 open my $table2, '<', 'ref-SH2.txt' or die "Cannot open table2.txt: $!";
 while (my $line = <$table2>) {
@@ -12,16 +12,16 @@ while (my $line = <$table2>) {
 }
 close $table2;
 
-# 打开第一个表和输出文件
+# Open the first table and output file
 open my $table1, '<', 'stat.txt' or die "Cannot open table1.txt: $!";
 open my $output, '>', 'stat.ref.txt' or die "Cannot open output.txt: $!";
 
-# 读取第一个表的每一行，查找序列对应的值，并将其添加到新的第七列
+# Read each line of the first table, find the corresponding value for the sequence, and add it as a new seventh column
 while (my $line = <$table1>) {
     chomp $line;
     my @fields = split /\t/, $line;
     my $sequence = $fields[0];
-    my $value = $values{$sequence} // '';  # 如果没有匹配的值，则使用空字符串
+    my $value = $values{$sequence} // '';
     print $output join("\t", @fields, $value), "\n";
 }
 

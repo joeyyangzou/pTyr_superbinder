@@ -2,31 +2,31 @@ import numpy as np
 import tensorflow as tf
 import argparse
 
-# 配置GPU内存
+# Configure GPU memory
 gpus = tf.config.list_physical_devices('GPU')
 if gpus:
     try:
-        # 对所有GPU设备统一设置内存增长
+        # Enable memory growth for all GPU devices
         for gpu in gpus:
             tf.config.experimental.set_memory_growth(gpu, True)
     except RuntimeError as e:
         print(e)
 
 def parse_args():
-    """解析命令行参数"""
+    """Parse command line arguments"""
     parser = argparse.ArgumentParser()
-    parser.add_argument('input_file', help='输入文件路径')
-    parser.add_argument('output_file', help='输出文件路径')
-    parser.add_argument('--threshold', type=float, default=0.99, help='概率阈值')
-    parser.add_argument('--batch_size', type=int, default=1024, help='批处理大小')
+    parser.add_argument('input_file', help='Input file path')
+    parser.add_argument('output_file', help='Output file path')
+    parser.add_argument('--threshold', type=float, default=0.99, help='Probability threshold')
+    parser.add_argument('--batch_size', type=int, default=1024, help='Batch size')
     return parser.parse_args()
 
 def load_checkpoint(checkpoint_path):
-    """加载checkpoint"""
+    """Load checkpoint"""
     return tf.keras.models.load_model(checkpoint_path)
 
 def preprocess_input(sequence):
-    """预处理输入序列"""
+    """Preprocess input sequence"""
     AA = ['I', 'L', 'V', 'F', 'M', 'C', 'A', 'G', 'P', 'T', 'S', 'Y', 'W', 'Q', 'N', 'H', 'E', 'D', 'K', 'R']
     max_length = 8
     processed_seq = sequence.ljust(max_length, 'I')[:max_length]
@@ -37,7 +37,7 @@ def preprocess_input(sequence):
     return np.array(encoding, dtype=np.float32).reshape(1, max_length, 20)
 
 def predict_in_batches(model, input_file, output_file, threshold, batch_size):
-    """分批处理预测任务"""
+    """Batch processing prediction task"""
     with open(input_file, 'r') as infile, open(output_file, 'w') as outfile:
         batch = []
         for line in infile:
@@ -45,15 +45,15 @@ def predict_in_batches(model, input_file, output_file, threshold, batch_size):
             if sequence:
                 batch.append(sequence)
                 if len(batch) >= batch_size:
-                    # 处理当前批次
+                    # Process current batch
                     input_data = np.vstack([preprocess_input(seq) for seq in batch])
                     batch_pred = model.predict(input_data, batch_size=len(batch))
                     for seq, prob in zip(batch, batch_pred[:,0]):
                         if prob >= threshold:
                             outfile.write(f"{seq}\t{prob:.4f}\n")
-                    batch = []  # 清空批次
+                    batch = []  # Clear batch
         
-        # 处理最后不足一个批次的数据
+        # Process remaining data less than one batch
         if batch:
             input_data = np.vstack([preprocess_input(seq) for seq in batch])
             batch_pred = model.predict(input_data, batch_size=len(batch))

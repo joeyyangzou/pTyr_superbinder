@@ -1,4 +1,4 @@
-#gpu内存
+#GPU memory
 import tensorflow as tf
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
@@ -32,12 +32,12 @@ K.set_image_data_format('channels_first')
 config = tf.compat.v1.ConfigProto(allow_soft_placement=True)
 gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.5)
 config.gpu_options.allow_growth = True
-sess = tf.compat.v1.Session(config=config)  # 注意 ，这里为tensorflow2.0版本，与第1.0有差距。
+sess = tf.compat.v1.Session(config=config)  # Note: This is for tensorflow 2.0 version, which differs from version 1.0.
 
-standard_file_path=""#用于数据标准化处理的文件路径。一般该文件须包括用于模型训练和测试的所有数据。
-model_save_path=""#模型保存路径
-data_path=""#训练数据集以及独立测试集的保存路径
-result_save_path=""#预测结果的保存路径
+standard_file_path=""#File path for data standardization processing. This file should generally include all data used for model training and testing.
+model_save_path=""#Model save path
+data_path=""#Training dataset and independent test set save path
+result_save_path=""#Prediction result save path
 
 StandardScalerIN=pd.read_csv(standard_file_path,sep='\t')
 StandardScaler_range=StandardScalerIN['value']
@@ -64,7 +64,7 @@ def process(inputfile_path):
 
 
     return inputfile, line_number, label,label_MinMaxScaler
-'''对完成分词操作的列表进行one-hot编码 ↓ '''
+'''Perform one-hot encoding on the processed sequence list ↓ '''
 def One_Hot(sequence,line_number):
     AA=['I', 'L', 'V', 'F', 'M', 'C', 'A', 'G', 'P', 'T', 'S', 'Y', 'W', 'Q', 'N', 'H', 'E', 'D', 'K', 'R']
     AA2=['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X']
@@ -85,10 +85,10 @@ def One_Hot(sequence,line_number):
     np.array(encodings)
     encodings=np.reshape(encodings,(line_number,8,20))
     return encodings
-'''搭建网络结构，并且进行编译 ↓ '''
+'''Build the network structure and compile it ↓ '''
 
 def build_network():
-    # 先创建包含多网络层的列表
+    # First create a list containing multiple network layers
     conv_layers = [
 
         layers.Conv1D(filters=128, kernel_size=1, padding='same', activation=tf.nn.relu,input_shape=( 8, 20)),
@@ -117,12 +117,12 @@ def build_network():
     conv_layers.extend(fc_layers)
     network = Sequential(conv_layers)
     network.build(input_shape=[None, 8, 20])
-    network.compile(optimizer=optimizers.Adam(), loss='mean_squared_error', metrics=['mae'])  # optimizers.RMSprop()，此时的loss函数为均方差，用于回归预测，决定系数R2（coefficient ofdetermination）常常在线性回归中被用来表征有多少百分比的因变量波动被回归线描述。如果R2 =1则表示模型完美地预测了目标变量。(lr=0.01,rho=0.9, epsilon=1e-06)
+    network.compile(optimizer=optimizers.Adam(), loss='mean_squared_error', metrics=['mae'])  # optimizers.RMSprop(), the loss function here is mean squared error, used for regression prediction. The coefficient of determination R2 is often used in linear regression to represent the percentage of dependent variable variance described by the regression line. If R2 = 1, it means the model perfectly predicts the target variable. (lr=0.01, rho=0.9, epsilon=1e-06)
     network.summary()
     return network
 
 
-'''将数据类型进行转换 ↓ '''
+'''Convert data types ↓ '''
 def coeff_determination(y_true, y_pred):
     SS_res =K.sum(K.square( y_true-y_pred ))
     SS_tot = K.sum(K.square( y_true - K.mean(y_true) ) )
@@ -132,17 +132,17 @@ def preprocess(x, y):
     y = tf.cast(y, dtype=tf.float32)
     return x, y
 
-'''下面的evaluate自定义函数的作用是对训练完成的模型进行评估 ↓ '''
+'''The evaluate function below is used to evaluate the trained model ↓ '''
 def evaluate(X, Y,Y_train_noNormalization,X_vali, Y_vali,Y_vali_noNormalization, X_TEST, Y_TEST,Y_test_noNormalization, batch_size=128, epochs=100,line_number_train=0,line_number_vali=0,line_number_test=0):
     classes = sorted([0, 1])
     print(Y)
     X_train, y_train = X, Y
-    '''将相应数据集转换为one-hot编码形式'''
+    '''Convert the corresponding dataset to one-hot encoding format'''
 
     ############One_Hot#####################
-    X_train = One_Hot(X_train, line_number_train)  # 训练集one-hot编码之后的得到的数据集
-    X_vali = One_Hot(X_vali, line_number_vali)  # 验证集one-hot编码之后的得到的数据集
-    X_test = One_Hot(X_TEST, line_number_test)  # 测试集one-hot编码之后的得到的数据集
+    X_train = One_Hot(X_train, line_number_train)  # Training set after one-hot encoding
+    X_vali = One_Hot(X_vali, line_number_vali)  # Validation set after one-hot encoding
+    X_test = One_Hot(X_TEST, line_number_test)  # Test set after one-hot encoding
     ############One_Hot#####################
 
 
@@ -152,17 +152,17 @@ def evaluate(X, Y,Y_train_noNormalization,X_vali, Y_vali,Y_vali_noNormalization,
 
     X_test_t = tf.cast(X_test_t, dtype=tf.float32)
 
-    '''下面六行命令之间两两类似，都是先将X与Y通过生成tf.data的形式绑定在一块，随后在下一行命令里面进行数据类型的变换，以及批量化处理 ↓ '''
-    # 构建训练集对象，随机打乱，预处理，批量化
-    train_db = tf.data.Dataset.from_tensor_slices((X_train_t,y_train))  # 首先将pandas dataframe 数据格式转变为 tf.data 格式的数据集形式，这样是为了下一步数据进行打乱处理做准备，转换为tf.data格式之后，序列与label值则昂订到一块，我们就可以对其进行同步处理
-    train_db = train_db.shuffle(len(X)).map(preprocess).batch(batch_size)  # 其中map函数是用来将序列做一键预处理用的。该行命令：先对数据进行随机化处理，随后使用map函数进行预处理，使用batch函数指定批次数量
-    # 构建验证集对象，预处理，批量化
+    '''The following six commands are similar in pairs, first binding X and Y through tf.data format, then performing data type transformation and batch processing in the next line ↓ '''
+    # Build training set object, random shuffle, preprocessing, batch processing
+    train_db = tf.data.Dataset.from_tensor_slices((X_train_t,y_train))  # First convert pandas dataframe format to tf.data format dataset, this is to prepare for the next step of data shuffling. After converting to tf.data format, the sequence and label values are bound together, and we can process them synchronously
+    train_db = train_db.shuffle(len(X)).map(preprocess).batch(batch_size)  # The map function is used for one-click preprocessing of sequences. This command: first randomize the data, then use map function for preprocessing, and use batch function to specify batch size
+    # Build validation set object, preprocessing, batch processing
     vali_db = tf.data.Dataset.from_tensor_slices((X_vali_t, Y_vali))
     vali_db = vali_db.shuffle(len(X_vali_t)).map(preprocess).batch(batch_size)
-    # 构建测试集对象，预处理，批量化
+    # Build test set object, preprocessing, batch processing
     test_db = tf.data.Dataset.from_tensor_slices((X_test_t, Y_TEST))
     test_db = test_db.shuffle(len(X_test_t)).map(preprocess).batch(batch_size)
-    '''调用已经搭建好的神经网络，并进行训练，并将独立测试集的测试结果输出'''
+    '''Call the built neural network, train it, and output the test results of the independent test set'''
     network = build_network()
     model_save_file_path=model_save_path
     checkpoint = ModelCheckpoint(model_save_file_path, monitor='val_mae', verbose=1, save_best_only=True, mode='auto',period=50, save_weights_only=True)
@@ -183,9 +183,9 @@ def evaluate(X, Y,Y_train_noNormalization,X_vali, Y_vali,Y_vali_noNormalization,
     network.save(model_save_file_path, save_format='tf')
     return tmp_result, history, R_squire
 
-'''下面的main自定义函数的作用主要为对以上的函数进行调用（主函数）'''
+'''The main function below is mainly used to call the above functions (main function)'''
 
-#储存结果的自定义函数
+#Custom function to save results
 def save_predict_result(data, output):
     with open(output, 'w') as f:
         f.write('value'+'\t'+'predict'+'\n')
@@ -194,52 +194,52 @@ def save_predict_result(data, output):
     return None
 
 
-#运行main函数
+#Run main function
 def random_dataset_number(data,label,sample_num):
-    '''随机产生一组数，加上random.seed(1)之后就可以保持每次循环所用的数是一样的，这里选择的是直接输入样本数量；还有另外一种方法，是输入取值所占百分比:1、平衡正负样本'''
+    '''Randomly generate a set of numbers, with random.seed(1) to keep the numbers used in each loop the same. Here we choose to directly input the sample number; another method is to input the percentage of values: 1、Balance positive and negative samples'''
     import random
-    random.seed(1)  # 此行代码：括号里面是0，则每次产生的数组不一样，是1的话每次产生的数组是一样的
+    random.seed(1)  # This line of code: if the number in parentheses is 0, the array generated each time is different; if it is 1, the array generated each time is the same
     sample_list = [i for i in range(len(data))]  # [0, 1, 2, 3, 4, 5, 6, 7]
-    sample_list = random.sample(sample_list, sample_num)  # 随机选取出了 [3, 4, 2, 0]
+    sample_list = random.sample(sample_list, sample_num)  # Randomly selected [3, 4, 2, 0]
     sample_data = [data[i] for i in sample_list]  # ['d', 'e', 'c', 'a']
     sample_label = [label[i] for i in sample_list]  # [3, 4, 2, 0]
 
-    '''保存list'''
+    '''Save list'''
     name1 = ['sequence']
-    sequence = pd.DataFrame(columns=name1, data=sample_data)  # 定义数据的表头以及数据,此行命令保存的是数据那一列
+    sequence = pd.DataFrame(columns=name1, data=sample_data)  # Define the table header and data, this line saves the data column
     name2 = ['label']
-    label = pd.DataFrame(columns=name2, data=sample_label)  # 定义数据的表头以及数据,此行命令保存的是label那一列
+    label = pd.DataFrame(columns=name2, data=sample_label)  # Define the table header and data, this line saves the label column
     return sample_data,sample_label,sequence,label
 def random_dataset_percent(data,label,percent):
-    '''随机产生一组数，加上random.seed(1)之后就可以保持每次循环所用的数是一样的，这里选择的是独立测试集所占百分比:2、提取独立测试集的自定函数'''
+    '''Randomly generate a set of numbers, with random.seed(1) to keep the numbers used in each loop the same. Here we choose the percentage of the independent test set: 2、Custom function to extract independent test set'''
 
-    sample_num = int(percent * len(data))  # 假设取20%的数据作为独立测试集
-    random.seed(2)  # 此行代码：括号里面是0，则每次产生的数组不一样，是非0的话每次产生的数组是一样的，保证每次提取的独立测试集都相同
+    sample_num = int(percent * len(data))  # Assume 20% of the data is used as the independent test set
+    random.seed(2)  # This line of code: if the number in parentheses is 0, the array generated each time is different; if it is non-0, the array generated each time is the same, ensuring the independent test set extracted each time is the same
     sample_list_all = [i for i in range(len(data))]  # [0, 1, 2, 3, 4, 5, 6, 7]
-    sample_list = random.sample(sample_list_all, sample_num)  # 随机选取出了 [3, 4, 2, 0]
+    sample_list = random.sample(sample_list_all, sample_num)  # Randomly selected [3, 4, 2, 0]
     sample_difference = list(set(sample_list_all).difference(set(sample_list)))
     sample_test_data = [data[i] for i in sample_list]  # ['d', 'e', 'c', 'a']
     sample_test_label = [label[i] for i in sample_list]  # [3, 4, 2, 0]
     sample_train_data = [data[i] for i in sample_difference]  # ['d', 'e', 'c', 'a']
     sample_train_label = [label[i] for i in sample_difference]  # [3, 4, 2, 0]
-    '''保存list'''
+    '''Save list'''
     name = ['sequence']
-    sequence = pd.DataFrame(columns=name, data=sample_test_data)  # 定义数据的表头以及数据,此行命令保存的是数据那一列
+    sequence = pd.DataFrame(columns=name, data=sample_test_data)  # Define the table header and data, this line saves the data column
     name = ['label']
-    label = pd.DataFrame(columns=name, data=sample_test_label)  # 定义数据的表头以及数据,此行命令保存的是label那一列
-    '''保存train_vali的list'''
+    label = pd.DataFrame(columns=name, data=sample_test_label)  # Define the table header and data, this line saves the label column
+    '''Save train_vali list'''
     name = ['sequence']
-    sequence_train = pd.DataFrame(columns=name, data=sample_train_data)  # 定义数据的表头以及数据,此行命令保存的是数据那一列
+    sequence_train = pd.DataFrame(columns=name, data=sample_train_data)  # Define the table header and data, this line saves the data column
     name = ['label']
-    label_train = pd.DataFrame(columns=name, data=sample_train_label)  # 定义数据的表头以及数据,此行命令保存的是label那一列
+    label_train = pd.DataFrame(columns=name, data=sample_train_label)  # Define the table header and data, this line saves the label column
     return sample_test_data,sample_test_label,sample_train_data,sample_train_label,sequence,label,sequence_train,label_train
-'''使用bioinformatics的数据进行处理↓'''
+'''Process using bioinformatics data↓'''
 def main():
     os.chdir(data_path)
     epoch = 1000
     X_train,line_number_train,Y_train,Y_train_MinMaxScaler=process("train")
     X_TEST, line_number_test,Y_TEST,Y_TEST_MinMaxScaler=process("test")
-    ###########"""数据经过标准化之后，再次经过归一化处理到（-1,1）。"""#########################
+    ###########"""After data standardization, it is normalized to (-1, 1)."""#########################
 
 
     x_vali, y_vali = X_TEST, Y_TEST_MinMaxScaler
@@ -267,8 +267,8 @@ def main():
 
 if __name__ == '__main__':
     main()
-'''1、平衡正负样本
-   2、先把独立测试集按比例拆分出来（正负样本分别提取、然后合并），加上判断测试集文件是否存在的命令
-   3、取出独立测试集之后的正样本负样本都随机按比例拆分成训练集、验证集，训练过程中保证每次所拆分的训练集与验证集保持不变
-   4、按照原来代码中就有的函数将label与sequence合成一个文件（确保一一对应），然后随机化打乱处理
-   5、训练集：验证集：测试集=6:2:2'''
+'''1、Balance positive and negative samples
+   2、First split the independent test set by proportion (extract positive and negative samples separately, then merge), add a command to check if the test set file exists
+   3、After extracting the independent test set, randomly split the remaining positive and negative samples into training set and validation set by proportion, ensuring the split training set and validation set remain the same during training
+   4、Use the existing functions in the original code to combine label and sequence into one file (ensure one-to-one correspondence), then randomize and shuffle
+   5、Training set: Validation set: Test set = 6:2:2'''
