@@ -26,11 +26,12 @@ while (my $line = <$fh>) {
 # Sort Flag 0 rows based on Diff_R4_R2
 my @sorted_flag0 = sort { (split(/\t/, $a))[3] <=> (split(/\t/, $b))[3] } @flag0_rows;
 
-# Select the top 10478 rows for Flag 0
-@sorted_flag0 = @sorted_flag0[0..8444];
+my $positive_count = scalar @flag1_rows;
+@sorted_flag0 = @sorted_flag0[0..$positive_count-1];
 
 # Write to positive.txt
 open(my $pos_fh, '>', 'positive') or die "Could not open file 'positive.txt' $!";
+print $pos_fh "sequence\tlabel\n";
 foreach my $row (@flag1_rows) {
     my @p=split /\t/,$row;
     print $pos_fh "$p[0]\t$p[4]\n";
@@ -39,6 +40,7 @@ close $pos_fh;
 
 # Write to negative.txt
 open(my $neg_fh, '>', 'negative') or die "Could not open file 'negative.txt' $!";
+print $neg_fh "sequence\tlabel\n";
 foreach my $row (@sorted_flag0) {
     my @q=split /\t/,$row;
     print $neg_fh "$q[0]\t$q[4]\n";
