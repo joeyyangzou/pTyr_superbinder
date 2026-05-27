@@ -1,4 +1,4 @@
-# pTyr_superbinder
+# ANCHOR: AI-NGS Consensus Heuristic for Optimized Refinement of High-Affinity Binders from Affinity Maturation
 The development of high-affinity binding variants for post-translational modification driven by artificial intelligence
 
 1. Use the Flash software to perform double-end sequence splicing with default parameters. Command: flash -o test -t 8 SH2_R1.fastq SH2_R2.fastq (pYS2.extendedFrags.fastq)
