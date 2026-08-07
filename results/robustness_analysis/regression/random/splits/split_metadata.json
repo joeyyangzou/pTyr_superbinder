@@ -1,0 +1,79 @@
+{
+  "split_mode": "random",
+  "split_seed": 2026,
+  "requested_test_fraction": 0.2,
+  "requested_validation_fraction": 0.1,
+  "minimum_requested_test_train_hamming": null,
+  "n_total": 4506,
+  "n_train": 3153,
+  "n_validation": 451,
+  "n_test": 902,
+  "n_excluded_hamming_buffer": 0,
+  "actual_train_fraction": 0.699733688415446,
+  "actual_validation_fraction": 0.10008877052818464,
+  "actual_test_fraction": 0.20017754105636928,
+  "homology_audit": {
+    "n_train": 3153,
+    "n_test": 902,
+    "exact_overlap_test_sequences": 0,
+    "test_sequences_with_train_neighbor_hamming_le_1": 570,
+    "fraction_with_train_neighbor_hamming_le_1": 0.6319290465631929,
+    "nearest_hamming_distance_counts": {
+      "1": 570,
+      "2": 285,
+      "3": 40,
+      "4": 7
+    },
+    "minimum_nearest_hamming_distance": 1,
+    "maximum_nearest_hamming_distance": 4
+  },
+  "pairwise_homology_audits": {
+    "train_vs_test": {
+      "n_train": 3153,
+      "n_test": 902,
+      "exact_overlap_test_sequences": 0,
+      "test_sequences_with_train_neighbor_hamming_le_1": 570,
+      "fraction_with_train_neighbor_hamming_le_1": 0.6319290465631929,
+      "nearest_hamming_distance_counts": {
+        "1": 570,
+        "2": 285,
+        "3": 40,
+        "4": 7
+      },
+      "minimum_nearest_hamming_distance": 1,
+      "maximum_nearest_hamming_distance": 4
+    },
+    "train_vs_validation": {
+      "n_train": 3153,
+      "n_test": 451,
+      "exact_overlap_test_sequences": 0,
+      "test_sequences_with_train_neighbor_hamming_le_1": 281,
+      "fraction_with_train_neighbor_hamming_le_1": 0.623059866962306,
+      "nearest_hamming_distance_counts": {
+        "1": 281,
+        "2": 152,
+        "3": 14,
+        "4": 3,
+        "5": 1
+      },
+      "minimum_nearest_hamming_distance": 1,
+      "maximum_nearest_hamming_distance": 5
+    },
+    "validation_vs_test": {
+      "n_train": 451,
+      "n_test": 902,
+      "exact_overlap_test_sequences": 0,
+      "test_sequences_with_train_neighbor_hamming_le_1": 308,
+      "fraction_with_train_neighbor_hamming_le_1": 0.34146341463414637,
+      "nearest_hamming_distance_counts": {
+        "1": 308,
+        "2": 415,
+        "3": 148,
+        "4": 29,
+        "5": 2
+      },
+      "minimum_nearest_hamming_distance": 1,
+      "maximum_nearest_hamming_distance": 5
+    }
+  }
+}

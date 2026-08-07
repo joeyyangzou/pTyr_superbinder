@@ -1,0 +1,34 @@
+{
+  "source_split": "random",
+  "tasks": {
+    "classification": {
+      "task": "classification",
+      "source_split": "random",
+      "selection_rule": "minimum validation loss across requested training seeds; test metrics were not used",
+      "selected_seed": 7,
+      "best_epoch": 125,
+      "minimum_validation_loss": 0.1633125841617584,
+      "sequence_length": 8,
+      "amino_acid_order": "ILVFMCAGPTSYWQNHEDKR",
+      "saved_model": "models/latest_models/classification/saved_model",
+      "prediction_scope": "raw sigmoid probability; apply calibration.json only when calibrated probabilities are required",
+      "reporting_note": "Repeated-run mean +/- SD and uncertainty use all ten independently trained models, not this single export.",
+      "calibration": "models/latest_models/classification/calibration.json"
+    },
+    "regression": {
+      "task": "regression",
+      "source_split": "random",
+      "selection_rule": "minimum validation loss across requested training seeds; test metrics were not used",
+      "selected_seed": 5,
+      "best_epoch": 158,
+      "minimum_validation_loss": 0.0106055820360779,
+      "sequence_length": 8,
+      "amino_acid_order": "ILVFMCAGPTSYWQNHEDKR",
+      "saved_model": "models/latest_models/regression/saved_model",
+      "prediction_scope": "tanh-scaled target; use target_scaler.json to convert predictions back to original target units",
+      "reporting_note": "Repeated-run mean +/- SD and uncertainty use all ten independently trained models, not this single export.",
+      "target_scaler": "models/latest_models/regression/target_scaler.json"
+    }
+  },
+  "purpose": "Convenient single-model artifacts for downstream inference; repeated-run statistics remain ensemble based."
+}
