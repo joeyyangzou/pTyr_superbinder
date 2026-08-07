@@ -11,5 +11,5 @@ run:
 - combined manuscript tables.
 
 Intermediate seed weight files and duplicate model exports are not included.
-Run `bash run_robustness_analysis.sh` to write an independent reproduction to
+Run `bash run_robustness_analysis.sh` to write an independent rerun to
 `robustness_analysis_rerun/` without overwriting these reference outputs.

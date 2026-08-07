@@ -52,11 +52,11 @@ analysis are not included in this GitHub package:
 
 | Local derived file | Approximate size | Reason omitted |
 |---|---:|---|
-| `final_predict.txt` | 477 MB | Fully derived and reproducible; unsuitable for standard GitHub storage |
-| `predict.txt` | 247 MB | Fully derived and reproducible |
+| `final_predict.txt` | 477 MB | Fully derived and regenerable; unsuitable for standard GitHub storage |
+| `predict.txt` | 247 MB | Fully derived and regenerable |
 | `reduced_sequence_prediction.txt` | 67 MB | Fully derived intermediate |
 
-These tables are not training inputs and are not required to reproduce any
+These tables are not training inputs and are not required to repeat any
 reported test metric. They can be regenerated using the published prediction
 scripts and trained models. If the journal requires direct hosting of these
 large derived tables, deposit them in Zenodo/Figshare or use Git LFS and add the

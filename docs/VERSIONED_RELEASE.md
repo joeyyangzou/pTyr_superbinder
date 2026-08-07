@@ -6,8 +6,8 @@ Use the annotated Git tag and GitHub release `v1.2.0`.
 
 ```bash
 git add .
-git commit -m "Release reproducibility package v1.2.0"
-git tag -a v1.2.0 -m "ANCHOR reproducibility release v1.2.0"
+git commit -m "Release complete ANCHOR workflow v1.2.0"
+git tag -a v1.2.0 -m "ANCHOR workflow release v1.2.0"
 git push origin main
 git push origin v1.2.0
 ```
