@@ -1,0 +1,9 @@
+{
+  "method": "standard deviation across independently trained seed models",
+  "n_training_seeds": 10,
+  "mean_predictive_sd": 0.05548807606101036,
+  "median_predictive_sd": 0.03953418880701065,
+  "predictive_sd_95th_percentile": 0.14459582194685922,
+  "spearman_uncertainty_vs_absolute_error": 0.3629851597824689,
+  "scope": "deep-ensemble epistemic uncertainty; not a full prediction interval"
+}

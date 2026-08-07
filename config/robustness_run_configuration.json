@@ -1,0 +1,42 @@
+{
+  "task": "all",
+  "positive_file": "positive",
+  "negative_file": "negative",
+  "regression_file": "regression_dataset.txt",
+  "output_dir": "results/robustness_analysis",
+  "split_modes": [
+    "random",
+    "hamming"
+  ],
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "split_seed": 2026,
+  "test_size": 0.2,
+  "validation_size": 0.1,
+  "minimum_test_train_hamming": 2,
+  "classification_epochs": 200,
+  "regression_epochs": 1000,
+  "classification_patience": 20,
+  "regression_patience": 50,
+  "classification_batch_size": 64,
+  "regression_batch_size": 128,
+  "bootstrap_replicates": 2000,
+  "mc_samples": 0,
+  "calibration": "platt",
+  "verbose": 2,
+  "python_version": "3.8.20",
+  "platform": "Linux-3.10.0-1160.119.1.el7.x86_64-x86_64-with-glibc2.17",
+  "numpy_version": "1.19.2",
+  "pandas_version": "1.3.5",
+  "tensorflow_version": "2.4.0"
+}

@@ -1,0 +1,14 @@
+{
+  "task": "classification",
+  "source_split": "random",
+  "selection_rule": "minimum validation loss across requested training seeds; test metrics were not used",
+  "selected_seed": 7,
+  "best_epoch": 125,
+  "minimum_validation_loss": 0.1633125841617584,
+  "sequence_length": 8,
+  "amino_acid_order": "ILVFMCAGPTSYWQNHEDKR",
+  "saved_model": "models/latest_models/classification/saved_model",
+  "prediction_scope": "raw sigmoid probability; apply calibration.json only when calibrated probabilities are required",
+  "reporting_note": "Repeated-run mean +/- SD and uncertainty use all ten independently trained models, not this single export.",
+  "calibration": "models/latest_models/classification/calibration.json"
+}

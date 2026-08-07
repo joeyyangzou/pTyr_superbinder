@@ -1,0 +1,8 @@
+{
+  "residual_definition": "observed minus predicted",
+  "mean_residual": 0.004940737984976262,
+  "median_residual": 0.0025149614181518842,
+  "residual_standard_deviation": 0.2785959692931037,
+  "mean_absolute_residual": 0.188096371225964,
+  "spearman_prediction_vs_residual": 0.04508646559833016
+}

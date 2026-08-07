@@ -1,0 +1,17 @@
+name: anchor-tf24
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8.20
+  - pip
+  - pip:
+      - tensorflow==2.4.0
+      - numpy==1.19.2
+      - six==1.15.0
+      - pandas==1.3.5
+      - scipy==1.7.3
+      - scikit-learn==1.0.2
+      - matplotlib==3.5.3
+      - h5py==2.10.0
+      - protobuf==3.20.3
+
