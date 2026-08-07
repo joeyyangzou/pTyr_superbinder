@@ -1,33 +1,34 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 use strict;
 use warnings;
 
+# Each input file contains one variable-region peptide per read. When no files
+# are supplied, all *.short files in the working directory are used.
+my @files = @ARGV ? @ARGV : glob "*.short";
+die "No input files supplied and no *.short files found\n" unless @files;
 
 my %sequences;
-#my @files = ('H9-K9me3_R1.final.fa.pep.filter.short', 'Cbx1-H9.final.fa.pep.filter.fa', 'file3', 'file4', 'file5', 'file6');
-my @files = glob "*.haoqiang";
-
-for my $i (0..$#files) {
-    open my $fh, '<', $files[$i] or die $!;
-    while (<$fh>) {
-        chomp;
-        $sequences{$_}[$i]++;
+for my $file_index (0 .. $#files) {
+    open my $input_handle, '<', $files[$file_index]
+        or die "Cannot open $files[$file_index]: $!\n";
+    while (my $line = <$input_handle>) {
+        chomp $line;
+        $line =~ s/\r$//;
+        next if $line eq '';
+        $sequences{$line}[$file_index]++;
     }
-    close $fh;
+    close $input_handle;
 }
 
-for my $seq (keys %sequences) {
-    print $seq;
-    for my $i (0..$#files) {
-        print "\t", ($sequences{$seq}[$i] // 0);
+for my $sequence (sort keys %sequences) {
+    print $sequence;
+    my $total = 0;
+    for my $file_index (0 .. $#files) {
+        my $count = $sequences{$sequence}[$file_index] // 0;
+        print "\t$count";
+        $total += $count;
     }
-    my @counts = map { $_ // 0 } @{$sequences{$seq}};
-    my $length = length $seq;
-    my $sum = 0;
-    $sum += $_ for @counts;
-
-    print "\t", length($seq)-1, "\t",$sum,"\n";
+    my $sequence_length = length $sequence;
+    $sequence_length-- if index($sequence, '-') >= 0;
+    print "\t$sequence_length\t$total\n";
 }
-
-
-

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Robustness and reproducibility analyses for the SH2 peptide CNNs.
+"""Robustness and repeated-run analyses for the SH2 peptide CNNs.
 
 This script intentionally leaves the original training scripts unchanged. It
 uses the same CNN architectures while correcting test-set leakage and adding:

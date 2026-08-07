@@ -2,8 +2,13 @@
 
 ## v1.2.0 - 2026-08-07
 
-- Renamed the public robustness/reproducibility workflow and removed internal
-  response-oriented naming.
+- Documented the complete raw-read-to-prediction ANCHOR workflow.
+- Updated classification and regression prediction programs to load the
+  latest public models and scaling metadata by default.
+- Added FASTQ-to-FASTA, unique-peptide counting, and deterministic split
+  helpers.
+- Renamed the public robustness workflow and removed internal response-oriented
+  naming.
 - Retained only the latest validation-selected classification and regression
   SavedModels.
 - Removed historical SavedModels, redundant model copies, and intermediate

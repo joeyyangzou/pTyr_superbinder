@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the ANCHOR public reproducibility package."""
+"""Validate the ANCHOR public workflow package."""
 
 import json
 import sys
@@ -21,6 +21,12 @@ def read_json(relative):
         return json.load(handle)
 
 
+def public_paths():
+    for path in ROOT.rglob("*"):
+        if ".git" not in path.relative_to(ROOT).parts:
+            yield path
+
+
 def main():
     required = [
         "README.md",
@@ -29,6 +35,13 @@ def main():
         "config/robustness_run_configuration.json",
         "environment/environment.yml",
         "environment/requirements_analysis.txt",
+        "docs/END_TO_END_WORKFLOW.md",
+        "docs/ROBUSTNESS_ANALYSIS.md",
+        "src/ngs_preprocessing/5.fastq2fasta.sh",
+        "src/ngs_preprocessing/stat_uniq_pep_num.pl",
+        "src/dataset_preparation/split_train_test.py",
+        "src/prediction/classification_Multi-thread_new.py",
+        "src/prediction/regression_multi_thread.py",
         "src/robustness_analysis/10_robustness_analysis.py",
         "src/robustness_analysis/robustness_utils.py",
         "data/processed/classification/positive.tsv",
@@ -77,7 +90,7 @@ def main():
 
     model_files = [
         path.relative_to(ROOT).as_posix()
-        for path in ROOT.rglob("*")
+        for path in public_paths()
         if path.is_file() and path.suffix.lower() in {".pb", ".h5", ".keras"}
     ]
     expected_models = sorted(
@@ -104,17 +117,18 @@ def main():
         raise AssertionError("Unexpected selected regression seed")
 
     internal_term = "review" + "er"
+    excluded_public_term = "re" + "produc"
     prohibited_names = []
-    for path in ROOT.rglob("*"):
+    for path in public_paths():
         relative = path.relative_to(ROOT).as_posix().lower()
-        if internal_term in relative:
+        if internal_term in relative or excluded_public_term in relative:
             prohibited_names.append(relative)
     if prohibited_names:
-        raise AssertionError(f"Internal response-oriented names remain: {prohibited_names}")
+        raise AssertionError(f"Excluded public names remain: {prohibited_names}")
 
     oversized = [
         path.relative_to(ROOT)
-        for path in ROOT.rglob("*")
+        for path in public_paths()
         if path.is_file() and path.stat().st_size >= 100 * 1024 * 1024
     ]
     if oversized:
@@ -123,12 +137,13 @@ def main():
     forbidden_fragments = [
         "/home/yangzou/",
         "C:\\Users\\yangzou",
-        "D:\\项目\\",
+        "D:\\github_repository\\",
         internal_term,
+        excluded_public_term,
     ]
     text_suffixes = {".md", ".json", ".yml", ".yaml", ".txt", ".py", ".sh", ".pl"}
     leaked = []
-    for path in ROOT.rglob("*"):
+    for path in public_paths():
         if not path.is_file() or path.suffix.lower() not in text_suffixes:
             continue
         if path.resolve() == Path(__file__).resolve():
@@ -137,7 +152,7 @@ def main():
         if any(fragment.lower() in content.lower() for fragment in forbidden_fragments):
             leaked.append(str(path.relative_to(ROOT)))
     if leaked:
-        raise AssertionError(f"Private paths or internal wording remain in: {leaked}")
+        raise AssertionError(f"Private paths or excluded wording remain in: {leaked}")
 
     print("ANCHOR release validation: PASS")
     print(f"Root: {ROOT}")

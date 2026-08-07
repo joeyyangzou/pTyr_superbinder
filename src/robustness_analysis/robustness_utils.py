@@ -1,4 +1,4 @@
-"""Utilities for the robustness and reproducibility analyses.
+"""Utilities for the robustness and repeated-run analyses.
 
 The functions in this module deliberately have no TensorFlow dependency so
 that data splitting, homology auditing and confidence intervals can be tested

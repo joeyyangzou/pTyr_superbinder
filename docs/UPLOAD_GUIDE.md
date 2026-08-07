@@ -5,7 +5,7 @@ The release package is a replacement working tree and intentionally omits
 
 ## Safe procedure
 
-1. Back up `D:\github_repository\ANCHOR` or create a fresh clone.
+1. Back up the existing local ANCHOR checkout or create a fresh clone.
 2. Inspect and preserve any current work in the existing repository:
 
    ```bash
@@ -18,7 +18,7 @@ The release package is a replacement working tree and intentionally omits
 3. Create a release branch:
 
    ```bash
-   git switch -c reproducibility-v1.2.0
+   git switch -c anchor-workflow-v1.2.0
    ```
 
 4. Replace the branch working-tree contents with the contents of
@@ -42,8 +42,8 @@ The release package is a replacement working tree and intentionally omits
 
    ```bash
    git add --all
-   git commit -m "Release reproducibility package v1.2.0"
-   git push -u origin reproducibility-v1.2.0
+   git commit -m "Release complete ANCHOR workflow v1.2.0"
+   git push -u origin anchor-workflow-v1.2.0
    ```
 
 8. Merge after verification, create annotated tag `v1.2.0`, and create the

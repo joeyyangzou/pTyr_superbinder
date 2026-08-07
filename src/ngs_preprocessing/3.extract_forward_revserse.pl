@@ -16,7 +16,7 @@ while (my $line = <IN>){
 		         my $nnn_line = <IN>;
 		if ($n_line=~/^CAGGCAGAAGAGTGGTAC.*GCCCAGTTTGAAACA$/){
 		        print OUT1 $line,$n_line,$nn_line,$nnn_line;
-		}else{
+		}elsif ($n_line=~/^TGTTTCAAACTGGGC.*GTACCACTCTTCTGCCTG$/){
 			print OUT2 $line,$n_line,$nn_line,$nnn_line;
 		}
 	}
