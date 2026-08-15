@@ -1,14 +1,12 @@
 {
   "task": "regression",
-  "source_split": "random",
-  "selection_rule": "minimum validation loss across requested training seeds; test metrics were not used",
-  "selected_seed": 5,
-  "best_epoch": 158,
-  "minimum_validation_loss": 0.0106055820360779,
+  "artifact_role": "downstream inference model",
+  "model_origin": "pTyr_antibody-analog/model/CNN_regression_model (copied byte-for-byte)",
   "sequence_length": 8,
   "amino_acid_order": "ILVFMCAGPTSYWQNHEDKR",
   "saved_model": "models/latest_models/regression/saved_model",
-  "prediction_scope": "tanh-scaled target; use target_scaler.json to convert predictions back to original target units",
-  "reporting_note": "Repeated-run mean +/- SD and uncertainty use all ten independently trained models, not this single export.",
-  "target_scaler": "models/latest_models/regression/target_scaler.json"
+  "architecture_source": "src/model_training/07_CNN_regression.py",
+  "prediction_scope": "tanh-scaled target; use target_scaler.json to recover original target units",
+  "target_scaler": "models/latest_models/regression/target_scaler.json",
+  "evaluation_note": "This inference artifact is separate from the seed-level models used to calculate the supplied robustness statistics."
 }

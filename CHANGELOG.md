@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.2.0 - 2026-08-07
+## v1.2.0 - 2026-08-14
 
 - Documented the complete raw-read-to-prediction ANCHOR workflow.
 - Updated classification and regression prediction programs to load the
@@ -15,6 +15,14 @@
   seed weight files.
 - Retained ten-seed histories, predictions, metrics, calibration results,
   confidence intervals, uncertainty estimates, and residual analyses.
+- Added the manuscript-aligned fixed 80:20 holdout workflow with 10-fold
+  cross-validation restricted to the 80% development set and inner-validation
+  early stopping.
+- Added the complete generated 80:20/10-fold process records: split manifests,
+  fold assignments, histories, predictions, calibration files, bootstrap
+  intervals, repeated-seed summaries, uncertainty outputs, and plots.
+- Kept only the two downstream inference SavedModels copied byte-for-byte from
+  `pTyr_antibody-analog/model`; evaluation-generated model copies are excluded.
 - Updated paths, documentation, environment files, manifests, checksums, and
   automated release validation.
 

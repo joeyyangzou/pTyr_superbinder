@@ -30,10 +30,13 @@ archive the tagged release with Zenodo and report the DOI in the manuscript.
 
 ## Suggested release notes
 
-> Version 1.2.0 provides processed datasets, frozen random and
-> Hamming-distance-separated partitions, ten-seed histories and predictions,
-> calibration parameters, bootstrap confidence intervals, uncertainty and
-> residual analyses, environment locks, and the latest validation-selected
-> classification and regression SavedModels. Historical models and
-> intermediate seed weights are not distributed. Test sets are not used for
-> early stopping, calibration, threshold selection, or model selection.
+> Version 1.2.0 provides processed datasets; frozen random and
+> Hamming-distance-separated partitions; a manuscript-aligned fixed 80:20
+> holdout with 10-fold cross-validation restricted to the 80% development
+> set; ten-seed histories and predictions; calibration parameters; bootstrap
+> confidence intervals; uncertainty and residual analyses; and environment
+> locks. Only the classifier and regressor copied byte-for-byte from the
+> pTyr_antibody-analog inference archive are distributed as SavedModels.
+> Evaluation-generated SavedModels and intermediate seed weights are omitted.
+> Test sets are not used for early stopping, calibration, threshold selection,
+> or model selection.

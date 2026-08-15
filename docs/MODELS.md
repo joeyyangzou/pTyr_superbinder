@@ -1,53 +1,61 @@
 # Model and parameter documentation
 
-## Distributed models
+## Distributed inference models
 
 This release provides exactly two complete TensorFlow SavedModels:
 
-- `models/latest_models/classification/saved_model/`: random-split seed 7,
-  selected by minimum validation loss at epoch 125.
-- `models/latest_models/regression/saved_model/`: random-split seed 5,
-  selected by minimum validation loss at epoch 158.
+- `models/latest_models/classification/saved_model/`: classifier copied
+  byte-for-byte from `pTyr_antibody-analog/model/CNN_classification`;
+- `models/latest_models/regression/saved_model/`: regressor copied
+  byte-for-byte from `pTyr_antibody-analog/model/CNN_regression_model`.
 
-Test metrics were not used during seed selection. Model manifests record the
-selection rule, encoding order, sequence length, and prediction scale.
+The model manifests record the encoding order, sequence length, architecture
+source, and prediction scale. Historical SavedModels, redundant model copies,
+and intermediate seed weights are intentionally excluded.
 
-Historical SavedModels, redundant model copies, and the 40 intermediate
-`best.weights.h5` files are intentionally excluded. The repeated-run training
-histories, predictions, calibration parameters, seed-level metrics, and
-aggregate results are retained under `results/robustness_analysis/`.
+These two artifacts are supplied for downstream sequence screening and
+ranking. They are not presented as the models from which the supplied
+repeated-seed or Hamming-separated evaluation summaries were calculated. The
+corresponding predictions, histories, seed-level metrics, calibration outputs,
+and aggregate statistics remain under `results/robustness_analysis/`.
 
 ## Architecture and retraining
 
-The classification and regression architectures are constructed by
-`src/robustness_analysis/10_robustness_analysis.py`. Fixed architecture and
+The 80:20 holdout plus 10-fold cross-validation training programs are:
+
+- `src/model_training/03_CNN_classification.py`;
+- `src/model_training/07_CNN_regression.py`.
+
+They freeze the independent 20% test set before cross-validation, perform the
+outer 10-fold analysis only within the 80% development set, and use inner
+validation subsets for early stopping. The final SavedModel is refitted on the
+complete development set and the test set is evaluated once.
+
+The more stringent repeated-seed and Hamming-separated analysis is implemented
+by `src/robustness_analysis/10_robustness_analysis.py`. Fixed architecture and
 training settings are recorded in `config/model_hyperparameters.json`. No
 formal grid, random, or Bayesian hyperparameter optimization was performed.
 
-Running `bash run_robustness_analysis.sh` retrains seeds 1-10 for both tasks and
-split designs. Intermediate weights are generated locally in the rerun result
-tree, but are ignored by Git so that future public releases continue to carry
-only the latest two SavedModels.
+## Deep ensemble used in the robustness analysis
 
-## Deep ensemble
-
-The deep ensemble is a prediction-level combination, not a weight average.
-For classification, each seed's sigmoid probabilities are calibrated using a
-validation-fitted Platt model and then averaged. For regression, predictions
-in original target units are averaged. The sample standard deviation across
-the ten predictions is reported as model-disagreement uncertainty.
+The robustness-analysis deep ensemble is a prediction-level combination, not
+a weight average. For classification, each seed's probabilities are calibrated
+using its validation data and then averaged. For regression, predictions in
+original target units are averaged. The sample standard deviation across the
+ten predictions is reported as model-disagreement uncertainty.
 
 This standard deviation is an epistemic disagreement measure; it is not a
 complete predictive interval and does not include all experimental noise.
 
 ## Prediction scales
 
-- The classification SavedModel returns a raw sigmoid probability.
-  `classification/calibration.json` contains the Platt coefficient and
-  intercept for calibrated probabilities.
-- The regression SavedModel returns a tanh-scaled target.
-  `regression/target_scaler.json` contains the training-only transformation
-  needed to recover original target units.
+- The distributed classification SavedModel returns a raw sigmoid probability.
+  No post-hoc calibration file is distributed for this inference model.
+- The distributed regression SavedModel returns a tanh-scaled target.
+  `regression/target_scaler.json` contains the transformation needed to recover
+  original target units; it was reconstructed from the 4,506 values in the
+  distributed processed regression dataset, matching the original inference
+  workflow.
 
-Thresholds must be defined on validation data for the intended raw,
-calibrated, or ensemble prediction scale.
+Thresholds for new applications should be selected on validation data from the
+intended application domain.

@@ -1,16 +1,20 @@
 # Trained models
 
-`latest_models/` contains the only trained model artifacts distributed in this
-release:
+`latest_models/` contains the only two trained inference artifacts distributed
+in this release:
 
-- `classification/`: validation-selected classifier (random-split seed 7),
-  with Platt-calibration metadata.
-- `regression/`: validation-selected regressor (random-split seed 5), with
-  target-scaling metadata.
+- `classification/saved_model/`: classifier returning a raw sigmoid
+  probability. No post-hoc calibration file is distributed for this model.
+- `regression/saved_model/`: regressor returning a tanh-scaled target, together
+  with `target_scaler.json` for conversion to the original target units.
 
-Both are complete TensorFlow SavedModels. Historical SavedModels and
-intermediate seed weight files are not included. Per-seed training histories,
-predictions, and metrics remain in `../results/robustness_analysis/`.
+Both are complete TensorFlow SavedModels copied byte-for-byte from the
+`pTyr_antibody-analog/model` archive (`CNN_classification` and
+`CNN_regression_model`). Historical SavedModels and intermediate seed weights
+are not included. The models used for the repeated-seed and Hamming-separated
+evaluation remain represented by their predictions, histories, and metrics in
+`../results/robustness_analysis/`; those evaluation statistics must not be
+attributed to the two downstream inference exports in this directory.
 
-See [`../docs/MODELS.md`](../docs/MODELS.md) for architecture, selection,
-prediction-scale, and ensemble details.
+See [`../docs/MODELS.md`](../docs/MODELS.md) for architecture, prediction-scale,
+and evaluation details.

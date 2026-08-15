@@ -17,7 +17,7 @@ model-training and evaluation code, full-sequence prediction programs,
 processed inputs, frozen partitions, the latest trained models, environment
 files, and supplied result tables and figures.
 
-Release: **v1.2.0 (2026-08-07)**
+Release: **v1.2.0 (2026-08-14)**
 
 ## Start here
 
@@ -33,7 +33,7 @@ ANCHOR/
 |-- src/
 |   |-- ngs_preprocessing/       FASTQ/FASTA processing and copy counting
 |   |-- dataset_preparation/     Classification/regression dataset construction
-|   |-- model_training/          Historical single-model training programs
+|   |-- model_training/          80:20 holdout and 10-fold CNN evaluation
 |   |-- robustness_analysis/     Isolated splits and repeated-run evaluation
 |   `-- prediction/              Classification screening and regression scoring
 |-- data/
@@ -41,6 +41,7 @@ ANCHOR/
 |   `-- frozen_splits/           Exact random and Hamming-separated partitions
 |-- models/latest_models/        Latest classifier and regressor SavedModels
 |-- results/robustness_analysis/ Supplied metrics, predictions, and figures
+|-- results/holdout_10fold_analysis/ 80:20/10-fold outputs and process records
 |-- config/                      Frozen parameters and run configuration
 |-- environment/                 Dependency specifications
 |-- docs/                        Workflow, data, model, and release documentation
@@ -103,16 +104,30 @@ design, the minimum inter-partition Hamming distance is 2. Test data are never
 used for early stopping, calibration, threshold selection, seed selection, or
 model selection.
 
+The manuscript-aligned 80:20 holdout analysis with 10-fold cross-validation
+inside the 80% development set can be rerun with:
+
+```bash
+bash check_80_20_splits.sh
+bash run_80_20_10fold_analysis.sh
+```
+
+The supplied output, including split manifests, fold assignments, training
+histories, out-of-fold and independent-test predictions, calibration files,
+bootstrap intervals, repeated-seed summaries, uncertainty estimates, and
+plots, is archived under `results/holdout_10fold_analysis/`. SavedModels
+created during that evaluation are intentionally omitted so that the public
+repository contains only the two downstream inference models described below.
+
 ## Latest models
 
-Only two inference models are distributed:
-
-- classification: random-split seed 7, selected by validation loss;
-- regression: random-split seed 5, selected by validation loss.
-
-They are under `models/latest_models/`, together with classification
-calibration and regression target-scaling metadata. Historical SavedModels,
-redundant copies, and intermediate seed weights are not included.
+Only two downstream inference models are distributed: one classifier and one
+regressor copied byte-for-byte from the `pTyr_antibody-analog/model` archive. They are
+under `models/latest_models/`; the classifier returns a raw sigmoid probability
+and the regressor is accompanied by target-scaling metadata. These inference
+exports are separate from the seed-level models used for the supplied
+repeated-run and Hamming-separated evaluation summaries. Historical
+SavedModels, redundant copies, and intermediate seed weights are not included.
 
 ## Full-sequence prediction
 
@@ -149,6 +164,9 @@ Key Hamming-separated ensemble estimates are:
 Complete seed-level and ensemble metrics, confidence intervals, predictions,
 calibration outputs, residuals, and uncertainty values are under
 `results/robustness_analysis/`.
+
+The separate manuscript-aligned 80:20/10-fold results and their generated
+process records are under `results/holdout_10fold_analysis/`.
 
 ## Documentation
 

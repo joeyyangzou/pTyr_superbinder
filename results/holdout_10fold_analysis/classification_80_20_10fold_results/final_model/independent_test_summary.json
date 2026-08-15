@@ -1,0 +1,78 @@
+{
+  "best_epoch_selected_without_test_data": 132,
+  "bootstrap_95_ci": {
+    "AUPRC": {
+      "ci_2.5": 0.9745870906880337,
+      "ci_97.5": 0.9820956923707543,
+      "estimate": 0.9785748000377938,
+      "replicates": 2000
+    },
+    "AUROC": {
+      "ci_2.5": 0.9684877014765634,
+      "ci_97.5": 0.9779994963085916,
+      "estimate": 0.9735607419702786,
+      "replicates": 2000
+    },
+    "Accuracy": {
+      "ci_2.5": 0.9169621749408984,
+      "ci_97.5": 0.9346926713947991,
+      "estimate": 0.9261229314420804,
+      "replicates": 2000
+    },
+    "Brier": {
+      "ci_2.5": 0.05134004782028936,
+      "ci_97.5": 0.062926141102667,
+      "estimate": 0.056836008946799486,
+      "replicates": 2000
+    },
+    "ECE": {
+      "ci_2.5": 0.015611585172554865,
+      "ci_97.5": 0.02980913823607639,
+      "estimate": 0.020294541590215563,
+      "replicates": 2000
+    },
+    "F1": {
+      "ci_2.5": 0.9154358286989546,
+      "ci_97.5": 0.9337757765441134,
+      "estimate": 0.924969987995198,
+      "replicates": 2000
+    },
+    "MCC": {
+      "ci_2.5": 0.8347865903844118,
+      "ci_97.5": 0.8695714045350335,
+      "estimate": 0.8526486250386287,
+      "replicates": 2000
+    },
+    "Precision": {
+      "ci_2.5": 0.9281792374174531,
+      "ci_97.5": 0.949724865804691,
+      "estimate": 0.9396341463414634,
+      "replicates": 2000
+    },
+    "Recall": {
+      "ci_2.5": 0.8965721040189125,
+      "ci_97.5": 0.9237588652482269,
+      "estimate": 0.9107565011820331,
+      "replicates": 2000
+    }
+  },
+  "independent_test_metrics": {
+    "AUPRC": 0.9785748000377938,
+    "AUROC": 0.9735607419702786,
+    "Accuracy": 0.9261229314420804,
+    "Brier": 0.056836008946799486,
+    "ECE": 0.020294541590215563,
+    "F1": 0.924969987995198,
+    "MCC": 0.8526486250386287,
+    "Precision": 0.9396341463414634,
+    "Recall": 0.9107565011820331
+  },
+  "independent_test_prediction_seconds": 0.592831521993503,
+  "n_development_refit": 13536,
+  "n_independent_test": 3384,
+  "refit_training_seconds": 396.38028581102844,
+  "selected_training_seed": 5,
+  "selection_rule": "minimum inner-validation loss; test metrics were not used",
+  "selection_training_seconds": 450.4991290230537,
+  "test_used_for_early_stopping_or_model_selection": false
+}

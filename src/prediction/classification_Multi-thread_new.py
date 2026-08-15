@@ -2,7 +2,6 @@
 """Batch classification of eight-residue SH2 variants."""
 
 import argparse
-import json
 from pathlib import Path
 
 import numpy as np
@@ -12,7 +11,6 @@ import tensorflow as tf
 AMINO_ACIDS = "ILVFMCAGPTSYWQNHEDKR"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MODEL = REPOSITORY_ROOT / "models/latest_models/classification/saved_model"
-DEFAULT_CALIBRATION = REPOSITORY_ROOT / "models/latest_models/classification/calibration.json"
 
 
 def configure_gpu():
@@ -30,12 +28,6 @@ def parse_args():
     parser.add_argument("--model", default=str(DEFAULT_MODEL), help="TensorFlow SavedModel directory")
     parser.add_argument("--threshold", type=float, default=0.99, help="Minimum probability written to the output")
     parser.add_argument("--batch_size", type=int, default=1024)
-    parser.add_argument(
-        "--calibrated",
-        action="store_true",
-        help="Apply the validation-fitted Platt calibration before thresholding",
-    )
-    parser.add_argument("--calibration", default=str(DEFAULT_CALIBRATION), help="Platt calibration JSON")
     return parser.parse_args()
 
 
@@ -52,15 +44,6 @@ def encode_sequences(sequences):
     return encoded
 
 
-def platt_calibrate(probabilities, calibration_path):
-    with Path(calibration_path).open("r", encoding="utf-8") as handle:
-        parameters = json.load(handle)
-    clipped = np.clip(probabilities, 1e-6, 1.0 - 1e-6)
-    logits = np.log(clipped / (1.0 - clipped))
-    calibrated_logits = parameters["coefficient"] * logits + parameters["intercept"]
-    return 1.0 / (1.0 + np.exp(-calibrated_logits))
-
-
 def read_sequences(handle):
     for line in handle:
         sequence = line.strip().split("\t", 1)[0].strip()
@@ -72,8 +55,6 @@ def write_batch(model, sequences, output_handle, args):
     probabilities = np.asarray(
         model.predict(encode_sequences(sequences), batch_size=args.batch_size, verbose=0)
     ).reshape(-1)
-    if args.calibrated:
-        probabilities = platt_calibrate(probabilities, args.calibration)
     for sequence, probability in zip(sequences, probabilities):
         if probability >= args.threshold:
             output_handle.write(f"{sequence}\t{probability:.6f}\n")

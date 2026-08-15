@@ -122,5 +122,6 @@ bash export_single_models.sh
 This command selects one seed per task using validation loss only, loads the
 locally generated weights, and writes TensorFlow SavedModels under
 `results/robustness_analysis_rerun/single_models/`. The public release already
-contains the current selected models under `models/latest_models/`.
-
+writes validation-selected exports to the rerun output tree. The models under
+`models/latest_models/` are the separate downstream inference artifacts and
+are not the source of the supplied repeated-run summaries.

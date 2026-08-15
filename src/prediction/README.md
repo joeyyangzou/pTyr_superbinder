@@ -12,9 +12,9 @@ python src/prediction/classification_Multi-thread_new.py \
   --threshold 0.99 --batch_size 10240
 ```
 
-The default is the raw sigmoid probability used by the historical screening
-workflow. Add `--calibrated` to use the validation-fitted Platt transformation.
-Use `--model` and `--calibration` only when overriding the public defaults.
+The classifier returns the raw sigmoid probability used by the historical
+screening workflow. No post-hoc calibration file is distributed for this
+inference model. Use `--model` only when overriding the public default.
 
 ## Regression ranking
 
@@ -28,4 +28,3 @@ python src/prediction/regression_multi_thread.py \
 The program automatically loads `target_scaler.json` and reports values in the
 original regression-target units. Use `--model` and `--scaler` to override
 the public defaults.
-

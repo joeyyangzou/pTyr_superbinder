@@ -6,4 +6,6 @@ __pycache__/
 .vscode/
 results/robustness_analysis_rerun/
 results/smoke_test/
+results/holdout_10fold_analysis_rerun_seed*/
+results/split_check_seed*/
 results/**/best.weights.h5

@@ -1,6 +1,8 @@
 {
-  "standard_scaler_mean": -0.09328325182366001,
-  "standard_scaler_scale": 0.5809305700141633,
-  "minmax_data_min": -5.264861079873576,
-  "minmax_data_max": 4.034591004165123
+  "standard_scaler_mean": -0.09361746449178872,
+  "standard_scaler_scale": 0.5830657870677406,
+  "minmax_data_min": -5.245007687533742,
+  "minmax_data_max": 4.155633066171114,
+  "fitted_on": "data/processed/regression/regression_dataset.tsv (4506 values)",
+  "feature_range": [-1, 1]
 }

@@ -1,0 +1,9 @@
+{
+  "development_rows": 3604,
+  "development_test_exact_sequence_overlap": 0,
+  "independent_test_rows": 902,
+  "outer_fold_method": "quantile-stratified",
+  "outer_folds": 10,
+  "test_used_in_cross_validation_or_early_stopping": false,
+  "total_rows": 4506
+}

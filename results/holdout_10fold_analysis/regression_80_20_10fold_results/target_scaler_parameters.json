@@ -1,0 +1,19 @@
+{
+  "fitted_on": "80% development set only",
+  "minmax_data_max": [
+    4.166498536751466
+  ],
+  "minmax_data_min": [
+    -3.503939165525288
+  ],
+  "minmax_feature_range": [
+    -1,
+    1
+  ],
+  "standard_mean": [
+    -0.09294843534961152
+  ],
+  "standard_scale": [
+    0.5813846840417373
+  ]
+}

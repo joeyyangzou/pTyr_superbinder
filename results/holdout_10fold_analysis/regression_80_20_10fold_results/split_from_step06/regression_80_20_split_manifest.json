@@ -1,0 +1,19 @@
+{
+  "block_size": 5,
+  "design": "log(ratio)-ordered systematic 4:1 split",
+  "development_fraction": 0.7998224589436307,
+  "development_output": "train_set.txt",
+  "development_rows": 3604,
+  "exact_sequence_overlap": 0,
+  "final_incomplete_block_size": 1,
+  "full_blocks": 901,
+  "independent_test_output": "test_set.txt",
+  "independent_test_rows": 902,
+  "ordering": "value (log10 ratio) descending; stable ordering for ties",
+  "sampling": "one independent-test sequence per consecutive block",
+  "test_fraction": 0.20017754105636928,
+  "test_used_for_training_validation_scaling_calibration_or_model_selection": false,
+  "total_rows": 4506,
+  "within_block_seed": 1,
+  "within_block_selection": "one row selected by the historical fixed-seed within-block permutation"
+}

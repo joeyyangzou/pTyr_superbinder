@@ -1,14 +1,12 @@
 {
   "task": "classification",
-  "source_split": "random",
-  "selection_rule": "minimum validation loss across requested training seeds; test metrics were not used",
-  "selected_seed": 7,
-  "best_epoch": 125,
-  "minimum_validation_loss": 0.1633125841617584,
+  "artifact_role": "downstream inference model",
+  "model_origin": "pTyr_antibody-analog/model/CNN_classification (copied byte-for-byte)",
   "sequence_length": 8,
   "amino_acid_order": "ILVFMCAGPTSYWQNHEDKR",
   "saved_model": "models/latest_models/classification/saved_model",
-  "prediction_scope": "raw sigmoid probability; apply calibration.json only when calibrated probabilities are required",
-  "reporting_note": "Repeated-run mean +/- SD and uncertainty use all ten independently trained models, not this single export.",
-  "calibration": "models/latest_models/classification/calibration.json"
+  "architecture_source": "src/model_training/03_CNN_classification.py",
+  "prediction_scope": "raw sigmoid probability; no post-hoc calibration is distributed for this model",
+  "calibration": null,
+  "evaluation_note": "This inference artifact is separate from the seed-level models used to calculate the supplied robustness statistics."
 }

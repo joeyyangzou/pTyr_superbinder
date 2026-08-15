@@ -40,6 +40,9 @@ def main():
         "src/ngs_preprocessing/5.fastq2fasta.sh",
         "src/ngs_preprocessing/stat_uniq_pep_num.pl",
         "src/dataset_preparation/split_train_test.py",
+        "src/dataset_preparation/06_train_test_split.py",
+        "src/model_training/03_CNN_classification.py",
+        "src/model_training/07_CNN_regression.py",
         "src/prediction/classification_Multi-thread_new.py",
         "src/prediction/regression_multi_thread.py",
         "src/robustness_analysis/10_robustness_analysis.py",
@@ -51,6 +54,9 @@ def main():
         "models/latest_models/regression/saved_model/saved_model.pb",
         "results/robustness_analysis/combined_metrics_for_manuscript.csv",
         "results/robustness_analysis/combined_split_summary.csv",
+        "results/holdout_10fold_analysis/summary/evaluation_metrics_summary.tsv",
+        "run_80_20_10fold_analysis.sh",
+        "check_80_20_splits.sh",
     ]
     for relative in required:
         require(relative)
@@ -111,10 +117,13 @@ def main():
     regression_manifest = read_json(
         "models/latest_models/regression/single_model_manifest.json"
     )
-    if classification_manifest["selected_seed"] != 7:
-        raise AssertionError("Unexpected selected classification seed")
-    if regression_manifest["selected_seed"] != 5:
-        raise AssertionError("Unexpected selected regression seed")
+    if classification_manifest["task"] != "classification":
+        raise AssertionError("Unexpected classification model manifest")
+    if regression_manifest["task"] != "regression":
+        raise AssertionError("Unexpected regression model manifest")
+    if classification_manifest.get("calibration") is not None:
+        raise AssertionError("The distributed classifier must use raw probabilities")
+    require("models/latest_models/regression/target_scaler.json")
 
     internal_term = "review" + "er"
     excluded_public_term = "re" + "produc"
@@ -157,7 +166,7 @@ def main():
     print("ANCHOR release validation: PASS")
     print(f"Root: {ROOT}")
     print(f"Independent run result directories: {len(seed_directories)}")
-    print("Distributed models: classification seed 7; regression seed 5")
+    print("Distributed models: one classifier and one regressor for downstream inference")
 
 
 if __name__ == "__main__":

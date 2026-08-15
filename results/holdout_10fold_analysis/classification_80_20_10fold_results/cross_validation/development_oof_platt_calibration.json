@@ -1,0 +1,8 @@
+{
+  "classification_threshold": 0.5098798957672979,
+  "coefficient": 1.1090514447496893,
+  "fitted_on": "pooled out-of-fold predictions from the 80% development set",
+  "intercept": -0.010777079815499564,
+  "test_data_used": false,
+  "threshold_selection": "maximum F1 on calibrated development OOF predictions"
+}
