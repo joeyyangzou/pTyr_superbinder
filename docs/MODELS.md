@@ -37,13 +37,15 @@ architecture and training settings are recorded in
 `config/model_hyperparameters.json`. The reported parameter combination was
 selected by a development-data grid search.
 
-## Deep ensemble used in the robustness analysis
+## Deep ensemble used in the repeated-seed analysis
 
-The robustness-analysis deep ensemble is a prediction-level combination, not
-a weight average. For classification, each seed's probabilities are calibrated
-using its validation data and then averaged. For regression, predictions in
-original target units are averaged. The sample standard deviation across the
-ten predictions is reported as model-disagreement uncertainty.
+The deep ensemble is a prediction-level combination of the ten independently
+seeded models trained on the same fixed 80% development set; it is not a weight
+average. For classification, each seed's probabilities are calibrated using
+pooled out-of-fold predictions from the development set and then averaged. For
+regression, predictions in original target units are averaged. The sample
+standard deviation across the ten predictions is reported as model-disagreement
+uncertainty. The independent 20% test set is used only for final evaluation.
 
 This standard deviation is an epistemic disagreement measure; it is not a
 complete predictive interval and does not include all experimental noise.
