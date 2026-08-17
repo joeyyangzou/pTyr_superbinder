@@ -21,5 +21,5 @@
       "target_scaler": "models/latest_models/regression/target_scaler.json"
     }
   },
-  "evaluation_note": "Reported repeated-run, Hamming-separated, and 80:20/10-fold statistics are derived from their archived analysis outputs, not from these two inference exports."
+  "evaluation_note": "Reported repeated-run and 80:20/10-fold statistics are derived from their archived analysis outputs, not from these two inference exports."
 }

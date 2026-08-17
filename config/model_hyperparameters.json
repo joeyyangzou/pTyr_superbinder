@@ -40,15 +40,14 @@
     "early_stopping_patience": 50,
     "target_scaling": "StandardScaler followed by MinMaxScaler(-1, 1), fitted on training targets only"
   },
-  "robustness": {
+  "evaluation": {
     "split_seed": 2026,
     "training_seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    "random_split_fractions": {"train": 0.70, "validation": 0.10, "test": 0.20},
-    "hamming_minimum_inter_partition_distance": 2,
+    "primary_split_fractions": {"development": 0.80, "independent_test": 0.20},
+    "development_cross_validation_folds": 10,
     "bootstrap_replicates": 2000,
     "classification_bootstrap_strata": "outcome class",
     "regression_bootstrap_strata": "observed-target quantile strata",
     "primary_uncertainty": "standard deviation across independently trained seed models"
   }
 }
-

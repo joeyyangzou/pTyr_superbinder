@@ -53,14 +53,9 @@ configurations are supplied with the output.
 ## Related variants and optimistic random splits
 
 **Response:** We agree that a random split among related library variants tests
-interpolation and can overestimate extrapolation performance. We therefore
-label the 80:20/10-fold results above as the random-split baseline. The more
-stringent Hamming-distance-separated and sequence-grouped analyses are reported
-separately and are not replaced by this baseline. Exact duplicate sequences are
+within-library interpolation and may overestimate performance on dissimilar
+sequence regions. We therefore describe the 80:20/10-fold results explicitly
+as the primary within-library evaluation. Exact duplicate sequences are
 rejected before splitting, and the generated split manifests confirm zero
-development/test row overlap. The Hamming-separated results should be cited
-when discussing extrapolation to dissimilar variants.
-
-> Editorial note: retain the final paragraph only together with the already
-> generated Hamming/sequence-cluster results. Do not describe a random split as
-> evidence of homology-separated extrapolation.
+development/test row overlap. We do not claim that this random partition is a
+homology-separated extrapolation test.

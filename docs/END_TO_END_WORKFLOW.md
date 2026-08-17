@@ -277,15 +277,6 @@ cd "${REPO_ROOT}"
 bash run_80_20_10fold_analysis.sh
 ```
 
-The additional stringent analysis uses isolated train/validation/test sets,
-random and Hamming-separated designs, ten training seeds, calibration,
-expanded metrics, confidence intervals, and model-disagreement uncertainty:
-
-```bash
-cd "${REPO_ROOT}"
-bash run_robustness_analysis.sh
-```
-
 The public inference artifacts remain one classifier and one regressor under
 `models/latest_models/`. Intermediate seed weights are not distributed.
 
@@ -336,4 +327,4 @@ tanh-scaled output back to the original enrichment scale.
 For every run, retain the sample sheet, raw filenames, FLASH version, commands,
 template motifs, mismatch policy, threshold values, environment specification,
 Git commit identifier, and output checksums. Do not overwrite the supplied
-reference metrics under `results/robustness_analysis/`.
+reference metrics under `results/holdout_10fold_analysis/`.

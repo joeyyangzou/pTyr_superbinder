@@ -15,9 +15,9 @@ and intermediate seed weights are intentionally excluded.
 
 These two artifacts are supplied for downstream sequence screening and
 ranking. They are not presented as the models from which the supplied
-repeated-seed or Hamming-separated evaluation summaries were calculated. The
+repeated-seed evaluation summaries were calculated. The
 corresponding predictions, histories, seed-level metrics, calibration outputs,
-and aggregate statistics remain under `results/robustness_analysis/`.
+and aggregate statistics remain under `results/holdout_10fold_analysis/`.
 
 ## Architecture and retraining
 
@@ -31,10 +31,11 @@ outer 10-fold analysis only within the 80% development set, and use inner
 validation subsets for early stopping. The final SavedModel is refitted on the
 complete development set and the test set is evaluated once.
 
-The more stringent repeated-seed and Hamming-separated analysis is implemented
-by `src/robustness_analysis/10_robustness_analysis.py`. Fixed architecture and
-training settings are recorded in `config/model_hyperparameters.json`. No
-formal grid, random, or Bayesian hyperparameter optimization was performed.
+Repeated-seed training, calibration, confidence intervals, and uncertainty
+summaries are implemented directly in the two model-training programs. Fixed
+architecture and training settings are recorded in
+`config/model_hyperparameters.json`. The reported parameter combination was
+selected by a development-data grid search.
 
 ## Deep ensemble used in the robustness analysis
 

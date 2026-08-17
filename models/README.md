@@ -11,9 +11,9 @@ in this release:
 Both are complete TensorFlow SavedModels copied byte-for-byte from the
 `pTyr_antibody-analog/model` archive (`CNN_classification` and
 `CNN_regression_model`). Historical SavedModels and intermediate seed weights
-are not included. The models used for the repeated-seed and Hamming-separated
-evaluation remain represented by their predictions, histories, and metrics in
-`../results/robustness_analysis/`; those evaluation statistics must not be
+are not included. The models used for the repeated-seed evaluation remain
+represented by their predictions, histories, and metrics in
+`../results/holdout_10fold_analysis/`; those evaluation statistics must not be
 attributed to the two downstream inference exports in this directory.
 
 See [`../docs/MODELS.md`](../docs/MODELS.md) for architecture, prediction-scale,

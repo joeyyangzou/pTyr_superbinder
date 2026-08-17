@@ -41,6 +41,6 @@ across the ten models was reported as deep-ensemble epistemic disagreement.
 ## Interpretation of split designs
 
 The random 80:20 analysis evaluates interpolation within the mutational
-library. Because related variants can occur across a random split, the separate
-Hamming-distance/sequence-grouped analysis provides the more stringent test of
-extrapolation to dissimilar sequences.
+library. Because related variants can occur across a random split, these
+results should not be interpreted as direct evidence of extrapolation to
+dissimilar sequence regions.

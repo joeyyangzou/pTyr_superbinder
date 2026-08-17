@@ -13,8 +13,9 @@ test set is used for epoch selection. After epoch selection, a newly
 initialized final model is fitted on all development observations and tested
 once on the fixed 20% holdout.
 
-These random-split programs complement, rather than replace, the repeated-seed
-and Hamming-separated analysis in `../robustness_analysis/`.
+These programs also run ten independently seeded final-model fits, calibration,
+bootstrap confidence intervals, and prediction-disagreement analyses on the
+same frozen development/test partition.
 
 ## Commands
 

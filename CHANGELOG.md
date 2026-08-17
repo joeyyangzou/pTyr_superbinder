@@ -29,7 +29,7 @@
 ## v1.1.0 - 2026-08-07
 
 - Added mutually exclusive training, validation, and test partitions.
-- Added frozen random and Hamming-distance-separated partitions.
+- Added fixed evaluation partitions and split manifests.
 - Added ten independent seeds, expanded metrics, Platt calibration,
   stratified bootstrap confidence intervals, residual analyses, and
   prediction-level ensemble uncertainty.

@@ -8,13 +8,13 @@ paired-end NGS reads
   -> merged and template-filtered reads
   -> translated variable-region peptides and copy counts
   -> denoised classification/regression datasets
-  -> CNN training and robustness analysis
+  -> CNN training and evaluation
   -> classification screening and regression ranking
 ```
 
 This release contains the preprocessing programs, dataset-construction code,
 model-training and evaluation code, full-sequence prediction programs,
-processed inputs, frozen partitions, the latest trained models, environment
+processed inputs, fixed split manifests, the latest trained models, environment
 files, and supplied result tables and figures.
 
 Release: **v1.2.0 (2026-08-14)**
@@ -22,7 +22,7 @@ Release: **v1.2.0 (2026-08-14)**
 ## Start here
 
 - [Complete raw-read-to-prediction workflow](docs/END_TO_END_WORKFLOW.md)
-- [Robustness analysis](docs/ROBUSTNESS_ANALYSIS.md)
+- [Model-training analysis](src/model_training/README.md)
 - [Data dictionary](docs/DATA_DICTIONARY.md)
 - [Models and parameters](docs/MODELS.md)
 
@@ -34,18 +34,15 @@ ANCHOR/
 |   |-- ngs_preprocessing/       FASTQ/FASTA processing and copy counting
 |   |-- dataset_preparation/     Classification/regression dataset construction
 |   |-- model_training/          80:20 holdout and 10-fold CNN evaluation
-|   |-- robustness_analysis/     Isolated splits and repeated-run evaluation
 |   `-- prediction/              Classification screening and regression scoring
 |-- data/
-|   |-- processed/               Public sequence-level model inputs
-|   `-- frozen_splits/           Exact random and Hamming-separated partitions
+|   `-- processed/               Public sequence-level model inputs
 |-- models/latest_models/        Latest classifier and regressor SavedModels
-|-- results/robustness_analysis/ Supplied metrics, predictions, and figures
 |-- results/holdout_10fold_analysis/ 80:20/10-fold outputs and process records
 |-- config/                      Frozen parameters and run configuration
 |-- environment/                 Dependency specifications
 |-- docs/                        Workflow, data, model, and release documentation
-`-- run_robustness_analysis.sh
+`-- run_80_20_10fold_analysis.sh
 ```
 
 Historical source files from the earlier repository layout are retained under
@@ -87,23 +84,6 @@ environment files.
 
 ## Model analysis
 
-From the repository root:
-
-```bash
-bash run_robustness_analysis.sh
-```
-
-This runs classification and regression with random and Hamming-separated
-partitions, independent seeds 1-10, validation-only early stopping,
-validation-only Platt calibration, expanded metrics, and 2,000 bootstrap
-replicates. Output is written to `results/robustness_analysis_rerun/`; the
-supplied reference results are not overwritten.
-
-All train, validation, and test sets are mutually exclusive. In the stringent
-design, the minimum inter-partition Hamming distance is 2. Test data are never
-used for early stopping, calibration, threshold selection, seed selection, or
-model selection.
-
 The manuscript-aligned 80:20 holdout analysis with 10-fold cross-validation
 inside the 80% development set can be rerun with:
 
@@ -126,7 +106,7 @@ regressor copied byte-for-byte from the `pTyr_antibody-analog/model` archive. Th
 under `models/latest_models/`; the classifier returns a raw sigmoid probability
 and the regressor is accompanied by target-scaling metadata. These inference
 exports are separate from the seed-level models used for the supplied
-repeated-run and Hamming-separated evaluation summaries. Historical
+repeated-run evaluation summaries. Historical
 SavedModels, redundant copies, and intermediate seed weights are not included.
 
 ## Full-sequence prediction
@@ -152,26 +132,23 @@ Both programs default to the latest SavedModels in this repository.
 
 ## Reference results
 
-Key Hamming-separated ensemble estimates are:
+Key independent-test estimates from the manuscript-aligned analysis are:
 
 | Task | Metric | Estimate (95% bootstrap CI) |
 |---|---|---|
-| Classification | AUROC | 0.945 (0.937-0.954) |
-| Classification | AUPRC | 0.961 (0.955-0.967) |
-| Regression | Pearson's r | 0.780 (0.755-0.804) |
-| Regression | Spearman's rho | 0.771 (0.749-0.794) |
+| Classification | AUROC | 0.974 (0.968-0.978) |
+| Classification | AUPRC | 0.979 (0.975-0.982) |
+| Regression | Pearson's r | 0.870 (0.849-0.889) |
+| Regression | Spearman's rho | 0.825 (0.808-0.842) |
 
 Complete seed-level and ensemble metrics, confidence intervals, predictions,
-calibration outputs, residuals, and uncertainty values are under
-`results/robustness_analysis/`.
-
-The separate manuscript-aligned 80:20/10-fold results and their generated
-process records are under `results/holdout_10fold_analysis/`.
+calibration outputs, residuals, uncertainty values, and generated process
+records are under `results/holdout_10fold_analysis/`.
 
 ## Documentation
 
 - [Complete workflow](docs/END_TO_END_WORKFLOW.md)
-- [Robustness analysis](docs/ROBUSTNESS_ANALYSIS.md)
+- [Model-training analysis](src/model_training/README.md)
 - [Data dictionary](docs/DATA_DICTIONARY.md)
 - [Models and parameters](docs/MODELS.md)
 - [Versioned release procedure](docs/VERSIONED_RELEASE.md)

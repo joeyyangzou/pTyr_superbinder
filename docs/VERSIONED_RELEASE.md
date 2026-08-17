@@ -30,8 +30,7 @@ archive the tagged release with Zenodo and report the DOI in the manuscript.
 
 ## Suggested release notes
 
-> Version 1.2.0 provides processed datasets; frozen random and
-> Hamming-distance-separated partitions; a manuscript-aligned fixed 80:20
+> Version 1.2.0 provides processed datasets; a manuscript-aligned fixed 80:20
 > holdout with 10-fold cross-validation restricted to the 80% development
 > set; ten-seed histories and predictions; calibration parameters; bootstrap
 > confidence intervals; uncertainty and residual analyses; and environment

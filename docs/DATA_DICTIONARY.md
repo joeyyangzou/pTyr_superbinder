@@ -16,36 +16,28 @@
 0 or 1. Regression `value` is the processed enrichment target used by the
 regression model.
 
-## Frozen robustness-analysis partitions
+## Fixed primary evaluation partitions
 
-Each split directory contains:
+The current model-training workflow first fixes 80% of each dataset as the
+development set and 20% as the independent test set using split seed 2026.
+Ten-fold cross-validation is restricted to the development set, and each fold
+creates an inner validation subset for early stopping. The outer validation
+fold and independent test set are never used for epoch selection.
 
-- `train.tsv`: samples used for gradient-based fitting.
-- `validation.tsv`: samples used for early stopping and classification
-  calibration.
-- `test.tsv`: frozen samples used for final evaluation only.
-- `excluded_hamming_buffer.tsv`: samples excluded because they were too close
-  to test or validation sequences; empty for random splitting.
-- `split_metadata.json`: sizes, split seed, class counts, and pairwise Hamming
-  audits.
+| Task | Total | Development | Independent test |
+|---|---:|---:|---:|
+| Classification | 16,920 | 13,536 | 3,384 |
+| Regression | 4,506 | 3,604 | 902 |
 
-### Partition sizes
-
-| Task | Design | Train | Validation | Test | Excluded buffer |
-|---|---|---:|---:|---:|---:|
-| Classification | Random | 11,844 | 1,692 | 3,384 | 0 |
-| Classification | Hamming | 2,734 | 432 | 3,384 | 10,370 |
-| Regression | Random | 3,153 | 451 | 902 | 0 |
-| Regression | Hamming | 1,568 | 237 | 902 | 1,799 |
-
-The Hamming partitions have minimum pairwise inter-partition distance 2 and no
-test sequence with a distance-0 or distance-1 training neighbor.
+Exact split manifests, fold assignments, predictions, and audit files are
+stored under `results/holdout_10fold_analysis/`.
 
 ## Supplied predictions and derived results
 
-Per-seed test predictions are stored below each `seed_*` directory. Ensemble
-files contain the test label/value, prediction mean, model-disagreement SD, and
-for regression, residual and absolute error.
+Per-seed test predictions and training histories are stored under
+`results/holdout_10fold_analysis/`. Ensemble files contain the test label/value,
+prediction mean, model-disagreement SD, and, for regression, residual and
+absolute error.
 
 Large exhaustive full-sequence-space prediction tables from the original local
 analysis are not included in this GitHub package:
