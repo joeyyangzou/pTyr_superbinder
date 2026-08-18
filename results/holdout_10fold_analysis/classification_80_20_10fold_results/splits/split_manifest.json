@@ -1,0 +1,12 @@
+{
+  "design": "80% development plus 20% untouched independent test; outer 10-fold CV only within development",
+  "inner_validation_fraction_of_outer_training": 0.1,
+  "n_development": 13536,
+  "n_independent_test": 3384,
+  "n_total": 16920,
+  "outer_fold_used_for_early_stopping": false,
+  "outer_folds": 10,
+  "split_seed": 2026,
+  "test_fraction": 0.2,
+  "test_used_for_early_stopping": false
+}

@@ -1,16 +1,17 @@
 # Trained models
 
-`latest_models/` contains the only trained model artifacts distributed in this
-release:
+`latest_models/` contains the two current TensorFlow SavedModels used by the
+prediction programs:
 
-- `classification/`: validation-selected classifier (random-split seed 7),
-  with Platt-calibration metadata.
-- `regression/`: validation-selected regressor (random-split seed 5), with
-  target-scaling metadata.
+```text
+latest_models/classification/saved_model/
+latest_models/regression/saved_model/
+```
 
-Both are complete TensorFlow SavedModels. Historical SavedModels and
-intermediate seed weight files are not included. Per-seed training histories,
-predictions, and metrics remain in `../results/robustness_analysis/`.
+The classification model returns a sigmoid probability. The regression model
+is accompanied by `target_scaler.json`, which is loaded automatically to
+convert predictions back to the original target scale.
 
-See [`../docs/MODELS.md`](../docs/MODELS.md) for architecture, selection,
-prediction-scale, and ensemble details.
+Model architecture and training parameters are recorded in
+`../config/model_hyperparameters.json`. Model-specific file manifests are kept
+next to each SavedModel.

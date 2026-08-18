@@ -1,86 +1,131 @@
+#!/usr/bin/env python3
+"""Create the systematic 4:1 regression split.
+
+Rows are first sorted by the regression target (log10 ratio) in descending
+order. Consecutive blocks of five are then formed. One row from every block is
+assigned to the independent test set using fixed within-block seed 1, and the
+remaining rows form the development set. A final incomplete block contributes
+one test row.
+"""
+
+import argparse
+import json
+from pathlib import Path
+
+import numpy as np
 import pandas as pd
-import math
-from sklearn.model_selection import train_test_split
-import sys
-sequennce_infilepath = "regression_dataset.txt"#待分割的数据集
-output_train = open("train_set.txt","w")#训练集的输出路径
-output_test = open("test_set.txt","w")#独立测试集的输出路径
 
 
-i=0
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input", default="regression_dataset.txt")
+    parser.add_argument("--development-output", default="train_set.txt")
+    parser.add_argument("--test-output", default="test_set.txt")
+    parser.add_argument(
+        "--alias-development-output",
+        default="",
+        help="Optional additional copy, e.g. regression_training",
+    )
+    parser.add_argument(
+        "--alias-test-output",
+        default="",
+        help="Optional additional copy, e.g. regression_indep",
+    )
+    parser.add_argument("--assignments", default="regression_systematic_split_assignments.tsv")
+    parser.add_argument("--manifest", default="regression_80_20_split_manifest.json")
+    parser.add_argument("--block-size", type=int, default=5)
+    parser.add_argument("--within-block-seed", type=int, default=1)
+    return parser.parse_args()
 
 
-def process(sequennce_infilepath):
-    line_number = 0
-    sequencefile = pd.read_csv(sequennce_infilepath, sep='\t')#, header=0
-    values=sequencefile['value']
-    sequence=sequencefile['sequence']
-    sequence_list=[]
-    label_list=[]
-    for seq in sequence:
-        sequence_list.append(seq)
-        line_number += 1
-    for value in values:
-        label_list.append(value)
-    
-    # 智能计算测试集大小（约20%）
-    test_number = max(1, int(line_number * 0.2))
-    print(f"自动计算测试集大小: {test_number}")
-    
-    split_span = int(line_number / test_number)
-    print(split_span)
-    ratio_remainder0 =1/split_span
+def main():
+    args = parse_args()
+    if args.block_size != 5:
+        raise ValueError("The 4:1 split requires --block-size 5")
 
-    if (line_number - split_span * test_number)>=split_span:
-        print('划分数据集异常')
-        sys.exit(1)
-    train_lnum = 0
-    test_lnum = 0
-    for i in range(0,line_number,split_span):
-        if line_number % test_number ==0:
-            x=sequence_list[i:i+split_span]
-            y = label_list[i:i+split_span]
-            x_train, x_test, y_train, y_test=train_test_split(x,y,test_size=ratio_remainder0,random_state=1)#,shuffle=false)
-            for (x_test_line,y_test_line) in zip(x_test,y_test):
-                print(x_test_line,y_test_line)
-                output_test.write(str(x_test_line) + '\t' + str(y_test_line) + '\n')
-            for (x_train_line,y_train_line) in zip(x_train,y_train):
-                output_train.write(str(x_train_line) + '\t' + str(y_train_line) + '\n')
+    data = pd.read_csv(args.input, sep="\t")
+    if not {"sequence", "value"}.issubset(data.columns):
+        raise ValueError("Input must contain sequence and value columns")
+    data = data[["sequence", "value"]].copy()
+    data["sequence"] = data["sequence"].astype(str).str.strip().str.upper()
+    data["value"] = pd.to_numeric(data["value"], errors="raise")
+    if data.empty:
+        raise ValueError("Regression dataset is empty")
+    if data["sequence"].duplicated().any():
+        raise ValueError("Exact duplicate sequences must be resolved before splitting")
+
+    # Stable sorting makes ties deterministic while preserving their input order.
+    ordered = data.sort_values("value", ascending=False, kind="mergesort").reset_index(drop=True)
+    ordered["sorted_rank"] = range(1, len(ordered) + 1)
+    ordered["block_id"] = (ordered.index // args.block_size) + 1
+
+    development_parts = []
+    test_parts = []
+    assignment_parts = []
+    for _, block in ordered.groupby("block_id", sort=True):
+        if len(block) == 1:
+            block_development = block.iloc[0:0].copy()
+            block_test = block.copy()
         else:
-            if i >= split_span*test_number and (line_number - split_span * test_number)<split_span:
-                no_ratio_remainder0 = 1 / (line_number - i)
-                if line_number - split_span * test_number > 1:
-                    x = sequence_list[i:]
-                    y = label_list[i:]
-                    x_train,  x_test,y_train, y_test = train_test_split(x, y, test_size=no_ratio_remainder0,random_state=0)
-                    for (x_test_line, y_test_line) in zip(x_test, y_test):
-                        output_test.write(str(x_test_line) + '\t' + str(y_test_line) + '\n')
-                        test_lnum+=1
-                    for (x_train_line, y_train_line) in zip(x_train, y_train):
-                        output_train.write(str(x_train_line) + '\t' + str(y_train_line) + '\n')
-                        train_lnum+=1
-                    print('!!!!!!!!!!!!!!!!!!!!!!抽样后的序列数量' + '(' + str(test_number) + '):' + '\t' + str(line_number - split_span * test_number))
-                    print('!!!!!!!!!!!!!!!!!!!!!!剩余数量大于1')
-                    print('!!!!!!!!!!!!!!!!!!!!!!test:' + str(test_lnum))
-                    print('!!!!!!!!!!!!!!!!!!!!!!train:' + str(train_lnum))
-                else:
-                    x_test = sequence_list[i:]
-                    y_test = label_list[i:]
-                    for (x_test_line, y_test_line) in zip(x_test, y_test):
-                        output_test.write(str(x_test_line) + '\t' + str(y_test_line) + '\n')
-                        test_lnum += 1
+            # Resetting the fixed RNG in every full five-row block makes the
+            # within-block selection deterministic.
+            selected_position = int(np.random.RandomState(args.within_block_seed).permutation(len(block))[0])
+            selected_index = block.index[selected_position]
+            block_test = block.loc[[selected_index]].copy()
+            block_development = block.drop(index=selected_index).copy()
+        block_development = block_development.copy()
+        block_test = block_test.copy()
+        block_development["partition"] = "train_set"
+        block_test["partition"] = "test_set"
+        development_parts.append(block_development)
+        test_parts.append(block_test)
+        assignment_parts.extend([block_development, block_test])
 
-                    print('!!!!!!!!!!!!!!!!!!!!!!剩余数量等于1')
-                    print('!!!!!!!!!!!!!!!!!!!!!!test:' + str(test_lnum))
-                    print('!!!!!!!!!!!!!!!!!!!!!!train:' + str(train_lnum))
-            else:
-                x = sequence_list[i:i + split_span]
-                y = label_list[i:i + split_span]
-                x_train,  x_test,y_train, y_test = train_test_split(x, y, test_size=ratio_remainder0,random_state=1)  # ,shuffle=false)
-                for (x_test_line, y_test_line) in zip(x_test, y_test):
-                    output_test.write(str(x_test_line) + '\t' + str(y_test_line) + '\n')
-                    test_lnum+=1
-                for (x_train_line, y_train_line) in zip(x_train, y_train):
-                    output_train.write(str(x_train_line) + '\t' + str(y_train_line) + '\n')
-                    train_lnum+=1
-process(sequennce_infilepath)
+    development_audit = pd.concat(development_parts, ignore_index=True)
+    test_audit = pd.concat(test_parts, ignore_index=True)
+    assignments = pd.concat(assignment_parts, ignore_index=True).sort_values("sorted_rank")
+    development = development_audit[["sequence", "value"]].reset_index(drop=True)
+    test = test_audit[["sequence", "value"]].reset_index(drop=True)
+
+    overlap = set(development["sequence"]).intersection(test["sequence"])
+    if overlap:
+        raise AssertionError("Regression training/independent-test sequence overlap detected")
+    if len(development) + len(test) != len(data):
+        raise AssertionError("Systematic split did not assign every input row exactly once")
+
+    development.to_csv(args.development_output, sep="\t", index=False)
+    test.to_csv(args.test_output, sep="\t", index=False)
+    assignments.to_csv(args.assignments, sep="\t", index=False)
+
+    if args.alias_development_output:
+        development.to_csv(args.alias_development_output, sep="\t", index=False)
+    if args.alias_test_output:
+        test.to_csv(args.alias_test_output, sep="\t", index=False)
+
+    block_counts = assignments.groupby("block_id")["partition"].value_counts().unstack(fill_value=0)
+    full_blocks = int((block_counts.sum(axis=1) == args.block_size).sum())
+    manifest = {
+        "design": "log(ratio)-ordered systematic 4:1 split",
+        "ordering": "value (log10 ratio) descending; stable ordering for ties",
+        "block_size": args.block_size,
+        "sampling": "one independent-test sequence per consecutive block",
+        "within_block_selection": "one row selected by the historical fixed-seed within-block permutation",
+        "within_block_seed": args.within_block_seed,
+        "full_blocks": full_blocks,
+        "final_incomplete_block_size": int(len(data) % args.block_size),
+        "total_rows": int(len(data)),
+        "development_rows": int(len(development)),
+        "independent_test_rows": int(len(test)),
+        "development_fraction": float(len(development) / len(data)),
+        "test_fraction": float(len(test) / len(data)),
+        "exact_sequence_overlap": 0,
+        "test_used_for_training_validation_scaling_calibration_or_model_selection": False,
+        "development_output": str(Path(args.development_output)),
+        "independent_test_output": str(Path(args.test_output)),
+    }
+    Path(args.manifest).write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    print(json.dumps(manifest, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

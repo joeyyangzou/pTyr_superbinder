@@ -1,0 +1,40 @@
+{
+  "metrics": {
+    "mae": 0.20632323156289203,
+    "pearson_r": 0.8696249153492355,
+    "r2": 0.7356587553759698,
+    "rmse": 0.3032031657415784,
+    "spearman_rho": 0.8248666199050045
+  },
+  "scope": "untouched independent 20% test set",
+  "selected_epoch": 199,
+  "selected_training_seed": 8,
+  "selection_rule": "minimum inner-validation loss; test metrics were not used",
+  "stratified_bootstrap_95_ci": {
+    "mae": {
+      "lower_95": 0.19399819105002064,
+      "upper_95": 0.21872485291362637,
+      "valid_replicates": 2000
+    },
+    "pearson_r": {
+      "lower_95": 0.8487593108078417,
+      "upper_95": 0.8892599545187155,
+      "valid_replicates": 2000
+    },
+    "r2": {
+      "lower_95": 0.6971472605991585,
+      "upper_95": 0.7731566551759026,
+      "valid_replicates": 2000
+    },
+    "rmse": {
+      "lower_95": 0.27704957469601244,
+      "upper_95": 0.3316109305356049,
+      "valid_replicates": 2000
+    },
+    "spearman_rho": {
+      "lower_95": 0.8077110846103832,
+      "upper_95": 0.8418200073548272,
+      "valid_replicates": 2000
+    }
+  }
+}

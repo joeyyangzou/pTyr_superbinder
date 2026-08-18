@@ -266,16 +266,15 @@ cp regression_dataset.txt \
   "${REPO_ROOT}/data/processed/regression/regression_dataset.tsv"
 ```
 
-The historical single-model programs are
+The maintained 80:20/10-fold programs are
 `src/model_training/03_CNN_classification.py` and
-`src/model_training/07_CNN_regression.py`. The maintained analysis entry point
-uses isolated train/validation/test sets, random and Hamming-separated designs,
-ten training seeds, calibration, expanded metrics, confidence intervals, and
-model-disagreement uncertainty:
+`src/model_training/07_CNN_regression.py`. They freeze the independent 20%
+test set first, run 10-fold cross-validation only within the 80% development
+set, and use inner validation data for early stopping. Run them together with:
 
 ```bash
 cd "${REPO_ROOT}"
-bash run_robustness_analysis.sh
+bash run_80_20_10fold_analysis.sh
 ```
 
 The public inference artifacts remain one classifier and one regressor under
@@ -283,8 +282,9 @@ The public inference artifacts remain one classifier and one regressor under
 
 ## D. Full-sequence prediction
 
-The prediction programs default to the two SavedModels and associated metadata
-under `models/latest_models/`.
+The prediction programs default to the two SavedModels under
+`models/latest_models/`. The regression model additionally uses the supplied
+target-scaling metadata.
 
 ### 22. Classification screening
 
@@ -299,9 +299,9 @@ nohup python src/prediction/classification_Multi-thread_new.py \
   > classification_prediction.log 2>&1 &
 ```
 
-By default the threshold is applied to the raw sigmoid probability, matching
-the historical prediction scale. Add `--calibrated` to apply the supplied
-validation-fitted Platt transformation.
+The threshold is applied to the raw sigmoid probability, matching the
+historical prediction scale. No post-hoc calibration file is distributed for
+this inference model.
 
 ### 23. Extract classification-passing sequences
 
@@ -327,5 +327,4 @@ tanh-scaled output back to the original enrichment scale.
 For every run, retain the sample sheet, raw filenames, FLASH version, commands,
 template motifs, mismatch policy, threshold values, environment specification,
 Git commit identifier, and output checksums. Do not overwrite the supplied
-reference metrics under `results/robustness_analysis/`.
-
+reference metrics under `results/holdout_10fold_analysis/`.

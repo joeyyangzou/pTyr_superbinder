@@ -1,5 +1,0 @@
-task,split_mode,n_train,n_validation,n_test,n_excluded_hamming_buffer,minimum_train_test_hamming,minimum_train_validation_hamming,minimum_validation_test_hamming,test_fraction_with_train_neighbor_hamming_le_1
-classification,random,11844,1692,3384,0,1,1,1,0.8888888888888888
-classification,hamming,2734,432,3384,10370,2,2,2,0.0
-regression,random,3153,451,902,0,1,1,1,0.6319290465631929
-regression,hamming,1568,237,902,1799,2,2,2,0.0

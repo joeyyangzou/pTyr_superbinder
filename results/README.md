@@ -1,15 +1,17 @@
-# Results
+# Model-analysis results
 
-`robustness_analysis/` contains the immutable supplied outputs from the formal
-run:
+`holdout_10fold_analysis/` contains the supplied classification and regression
+analysis outputs:
 
-- random and Hamming split manifests;
-- per-seed histories, predictions, calibration parameters, and metrics;
-- ensemble predictions and metrics;
-- calibration, ROC, precision-recall, residual, and uncertainty plots;
-- 2,000-replicate bootstrap confidence intervals; and
-- combined manuscript tables.
+- fixed 80% development and 20% independent-test partitions;
+- development-set ten-fold assignments and fold metrics;
+- inner-validation training histories used for early stopping;
+- out-of-fold and independent-test predictions;
+- classification ROC, precision-recall and reliability plots;
+- regression observed-versus-predicted and residual plots;
+- 2,000-replicate bootstrap 95% confidence intervals;
+- ten-seed metrics and model-disagreement summaries; and
+- run configurations and target-scaling parameters.
 
-Intermediate seed weight files and duplicate model exports are not included.
-Run `bash run_robustness_analysis.sh` to write an independent rerun to
-`robustness_analysis_rerun/` without overwriting these reference outputs.
+The current trained models used by the prediction programs are stored once,
+under `../models/latest_models/`.

@@ -1,0 +1,71 @@
+task	evaluation	metric	estimate	sd	ci_95_lower	ci_95_upper
+classification	10-fold mean within 80% development set	AUPRC	0.9768900903234717	0.0028784953700994272		
+classification	10-fold mean within 80% development set	AUROC	0.9713988832742186	0.003914884132640967		
+classification	10-fold mean within 80% development set	Accuracy	0.9292261520708397	0.006527342308459222		
+classification	10-fold mean within 80% development set	Brier	0.057648528128168196	0.003442864350807834		
+classification	10-fold mean within 80% development set	ECE	0.02796687007119899	0.0068866022262331385		
+classification	10-fold mean within 80% development set	F1	0.9269504789652263	0.006507889163910558		
+classification	10-fold mean within 80% development set	MCC	0.8602883857600115	0.01344922112576647		
+classification	10-fold mean within 80% development set	Precision	0.9581238434448467	0.013312848689225746		
+classification	10-fold mean within 80% development set	Recall	0.8979012437397846	0.009490108645849493		
+classification	pooled out-of-fold	AUPRC	0.9761302048223478			
+classification	pooled out-of-fold	AUROC	0.9706647456009088			
+classification	pooled out-of-fold	Accuracy	0.929225768321513			
+classification	pooled out-of-fold	Brier	0.05764867455103185			
+classification	pooled out-of-fold	ECE	0.017840602704820973			
+classification	pooled out-of-fold	F1	0.9269371568029285			
+classification	pooled out-of-fold	MCC	0.8601411116445911			
+classification	pooled out-of-fold	Precision	0.9579129886506935			
+classification	pooled out-of-fold	Recall	0.897901891252955			
+classification	independent 20% test	AUPRC	0.9785748000377938		0.9745870906880337	0.9820956923707543
+classification	independent 20% test	AUROC	0.9735607419702786		0.9684877014765634	0.9779994963085916
+classification	independent 20% test	Accuracy	0.9261229314420804		0.9169621749408984	0.9346926713947991
+classification	independent 20% test	Brier	0.056836008946799486		0.05134004782028936	0.062926141102667
+classification	independent 20% test	ECE	0.020294541590215563		0.015611585172554865	0.02980913823607639
+classification	independent 20% test	F1	0.924969987995198		0.9154358286989546	0.9337757765441134
+classification	independent 20% test	MCC	0.8526486250386287		0.8347865903844118	0.8695714045350335
+classification	independent 20% test	Precision	0.9396341463414634		0.9281792374174531	0.949724865804691
+classification	independent 20% test	Recall	0.9107565011820331		0.8965721040189125	0.9237588652482269
+classification	10 independent training seeds	AUPRC	0.9787075283058277	0.0009430897434989611		
+classification	10 independent training seeds	AUROC	0.9733136118236843	0.0012830051853034337		
+classification	10 independent training seeds	Accuracy	0.9294917257683215	0.0020196668843758003		
+classification	10 independent training seeds	Brier	0.056091154490594965	0.0012861686629364896		
+classification	10 independent training seeds	ECE	0.018295338035364907	0.003950995054718384		
+classification	10 independent training seeds	F1	0.9276351727681036	0.001840706931719421		
+classification	10 independent training seeds	MCC	0.8601950723156608	0.004366137151593055		
+classification	10 independent training seeds	Precision	0.952871173290332	0.007822727478027291		
+classification	10 independent training seeds	Recall	0.9037825059101655	0.005941602756861881		
+classification	deep ensemble on independent test	AUPRC	0.9804807517628107		0.9769325219280295	0.9838000146670576
+classification	deep ensemble on independent test	AUROC	0.9755873838226337		0.9710018097262042	0.9799212955976954
+classification	deep ensemble on independent test	Accuracy	0.9326241134751773		0.9243498817966903	0.9408983451536643
+classification	deep ensemble on independent test	Brier	0.05340963879365788		0.048228946534866306	0.05875184606419717
+classification	deep ensemble on independent test	ECE	0.018449348491403818		0.014047486610499127	0.02647831107409781
+classification	deep ensemble on independent test	F1	0.9306147291539866		0.921622155240472	0.939339549851589
+classification	deep ensemble on independent test	MCC	0.8667032052970683		0.8505204220521079	0.8830476307030778
+classification	deep ensemble on independent test	Precision	0.9592220828105396		0.9499029973668079	0.9682838482760578
+classification	deep ensemble on independent test	Recall	0.9036643026004728		0.8900561465721041	0.91725768321513
+regression	10-fold mean within 80% development set	mae	0.20036436096706306	0.011349730023407383		
+regression	10-fold mean within 80% development set	pearson_r	0.8677920894039023	0.016633614293209732		
+regression	10-fold mean within 80% development set	r2	0.7463666183108552	0.029507228574798813		
+regression	10-fold mean within 80% development set	rmse	0.29237359887598163	0.02014961027737181		
+regression	10-fold mean within 80% development set	spearman_rho	0.8285165162897499	0.013880859503523139		
+regression	pooled out-of-fold	mae	0.20036568372980013			
+regression	pooled out-of-fold	pearson_r	0.864748369279815			
+regression	pooled out-of-fold	r2	0.7460131111101749			
+regression	pooled out-of-fold	rmse	0.2930010898457978			
+regression	pooled out-of-fold	spearman_rho	0.8229092708850153			
+regression	independent 20% test	mae	0.20632323156289203		0.19399819105002064	0.21872485291362637
+regression	independent 20% test	pearson_r	0.8696249153492355		0.8487593108078417	0.8892599545187155
+regression	independent 20% test	r2	0.7356587553759698		0.6971472605991585	0.7731566551759026
+regression	independent 20% test	rmse	0.3032031657415784		0.27704957469601244	0.3316109305356049
+regression	independent 20% test	spearman_rho	0.8248666199050045		0.8077110846103832	0.8418200073548272
+regression	10 independent training seeds	mae	0.19648663856622614	0.00497271206569124		
+regression	10 independent training seeds	pearson_r	0.8709339848011688	0.0026073815196909073		
+regression	10 independent training seeds	r2	0.7507434225088638	0.009203041875765889		
+regression	10 independent training seeds	rmse	0.2943801652473735	0.0054116646723782824		
+regression	10 independent training seeds	spearman_rho	0.8264720382583717	0.0037535878481200595		
+regression	deep ensemble on independent test	mae	0.19006899422160536		0.17853192120935454	0.20174453014880306
+regression	deep ensemble on independent test	pearson_r	0.8788262448263957		0.8576387529312175	0.8968401315210408
+regression	deep ensemble on independent test	r2	0.7686705941013826		0.7305384199117797	0.801306736108063
+regression	deep ensemble on independent test	rmse	0.2836394845312324		0.25748050574639164	0.31552468124551064
+regression	deep ensemble on independent test	spearman_rho	0.8343666684232134		0.818592323498638	0.8486870266219335

@@ -1,455 +1,760 @@
-import numpy as np
-import tensorflow as tf
-import pandas as pd
+#!/usr/bin/env python3
+"""Binary CNN evaluation with an 80:20 independent test and outer 10-fold CV.
+
+The independent 20% test set is frozen before cross-validation. Ten-fold
+cross-validation is performed only within the remaining 80% development set.
+For each outer fold, an inner validation subset is used for early stopping;
+the untouched outer fold is evaluated only after the best epoch is selected.
+A final model is selected in the same way, refitted on all development data,
+and evaluated once on the independent test set.
+"""
+
+import argparse
+import json
 import os
-from tensorflow.keras import layers, Sequential, optimizers
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
-from sklearn.metrics import roc_curve, auc
+import platform
+import random
+import time
+from pathlib import Path
 
-# 配置GPU内存
-gpus = tf.config.list_physical_devices('GPU')
-if gpus:
-    try:
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-    except RuntimeError as e:
-        print(e)
+os.environ.setdefault("TF_DETERMINISTIC_OPS", "1")
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 
-config = tf.compat.v1.ConfigProto(allow_soft_placement=True)
-gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.5)
-config.gpu_options.allow_growth = True
+import matplotlib
 
-# 获取当前脚本所在目录
-current_dir = os.path.dirname(os.path.abspath(__file__))
-model_save_path=os.path.join(current_dir, "models")#二分类模型保存路径
-metrics_path=os.path.join(current_dir, "output", "confusion_matrix.csv")#混淆矩阵的路径
-data_path=current_dir#训练集以及独立测试集的存储路径
-result_path=os.path.join(current_dir, "output")#模型预测结果以及loss曲线图的存储路径
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    brier_score_loss,
+    f1_score,
+    matthews_corrcoef,
+    precision_recall_curve,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+    roc_curve,
+)
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold, train_test_split
 
-# 创建必要的目录
-os.makedirs(os.path.join(current_dir, "models"), exist_ok=True)
-os.makedirs(os.path.join(current_dir, "output"), exist_ok=True)
 
-'''对原始序列进行分词操作，并生成能够被进行one-hot操作的列表 ↓ '''
-def process(inputfile_path):
-    data = pd.read_csv(inputfile_path, sep='\t', header=0)
-    lable = data['label']
-    inputfile = data['sequence']
-    sequence_list = []
-    line_number = 0
-    for line in inputfile:
-        line_number = line_number + 1
-    return inputfile, line_number, lable
-def One_Hot(sequence, line_number):
-    AA = ['I', 'L', 'V', 'F', 'M', 'C', 'A', 'G', 'P', 'T', 'S', 'Y', 'W', 'Q', 'N', 'H', 'E', 'D', 'K', 'R']
-    encodings = []
-    seq_lengths = []
-    
-    # 确保sequence是列表格式
-    if hasattr(sequence, 'iloc'):  # 如果是pandas的Series
-        sequence_list = sequence.tolist()
-    else:
-        sequence_list = list(sequence)
-    
-    # 首先获取所有序列的长度，找出最常见的长度
-    for seq_line in sequence_list:
-        seq_line_list = list(str(seq_line))  # 确保转换为字符串再转列表
-        seq_lengths.append(len(seq_line_list))
-    
-    # 找出最常见的序列长度作为标准长度
-    if seq_lengths:
-        from collections import Counter
-        most_common = Counter(seq_lengths).most_common(1)
-        if most_common:
-            seq_length = most_common[0][0]
-        else:
-            seq_length = 8  # 默认长度，以防没有序列
-        print(f"使用的标准序列长度: {seq_length}")
-    else:
-        seq_length = 8  # 默认长度，以防没有序列
-        print(f"没有找到序列，使用默认长度: {seq_length}")
-    
-    # 处理每个序列，确保长度一致
-    for seq_line in sequence_list:
-        code = []
-        # 确保seq_line是字符串并转换为列表
-        seq_line_list = list(str(seq_line))
-        
-        # 如果序列长度不一致，进行截断或填充
-        if len(seq_line_list) != seq_length:
-            # 截断过长的序列
-            if len(seq_line_list) > seq_length:
-                seq_line_list = seq_line_list[:seq_length]
-                print(f"警告: 序列 {seq_line[:10]}... 过长，已截断为 {seq_length} 个字符")
-            # 填充过短的序列（用'X'作为未知氨基酸）
-            else:
-                padding = ['X'] * (seq_length - len(seq_line_list))
-                seq_line_list.extend(padding)
-                print(f"警告: 序列 {seq_line} 过短，已填充为 {seq_length} 个字符")
-        
-        # 进行one-hot编码
-        for aa in seq_line_list:
-            # 对每个氨基酸进行20种AA的编码
-            for aa1 in AA:
-                tag = 1 if aa == aa1 else 0
-                code.append(tag)
-        
-        encodings.append(code)
-    
-    # 转换为numpy数组
-    try:
-        encodings = np.array(encodings)
-        print(f"编码后的数组形状: {encodings.shape}")
-        
-        # 计算期望的形状
-        expected_shape = (line_number, seq_length, 20)
-        
-        # 确保重塑操作安全
+AMINO_ACIDS = "ILVFMCAGPTSYWQNHEDKR"
+AA_TO_INDEX = {amino_acid: index for index, amino_acid in enumerate(AMINO_ACIDS)}
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--positive-file", default="positive")
+    parser.add_argument("--negative-file", default="negative")
+    parser.add_argument("--output-dir", default="classification_80_20_10fold_results")
+    parser.add_argument("--seed", type=int, default=2026)
+    parser.add_argument("--test-size", type=float, default=0.20)
+    parser.add_argument("--inner-validation-size", type=float, default=0.10)
+    parser.add_argument("--folds", type=int, default=10)
+    parser.add_argument("--epochs", type=int, default=200)
+    parser.add_argument("--patience", type=int, default=20)
+    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--bootstrap-replicates", type=int, default=2000)
+    parser.add_argument(
+        "--training-seeds",
+        nargs="+",
+        type=int,
+        default=list(range(1, 11)),
+        help="Independent final-training seeds used for mean +/- SD and deep-ensemble uncertainty.",
+    )
+    parser.add_argument("--verbose", type=int, choices=[0, 1, 2], default=2)
+    parser.add_argument(
+        "--split-only",
+        action="store_true",
+        help="Write and audit the 80:20 and outer-fold assignments without importing TensorFlow.",
+    )
+    return parser.parse_args()
+
+
+def save_json(value, path):
+    with Path(path).open("w", encoding="utf-8") as handle:
+        json.dump(value, handle, indent=2, sort_keys=True)
+
+
+def read_data(positive_file, negative_file):
+    positive = pd.read_csv(positive_file, sep="\t")
+    negative = pd.read_csv(negative_file, sep="\t")
+    required = {"sequence", "label"}
+    if not required.issubset(positive.columns) or not required.issubset(negative.columns):
+        raise ValueError("Both input files must contain sequence and label columns")
+    data = pd.concat(
+        [positive.loc[:, ["sequence", "label"]], negative.loc[:, ["sequence", "label"]]],
+        ignore_index=True,
+    )
+    data["sequence"] = data["sequence"].astype(str).str.strip().str.upper()
+    data["label"] = pd.to_numeric(data["label"], errors="raise").astype(int)
+    if set(data["label"].unique()) != {0, 1}:
+        raise ValueError("Classification labels must contain both 0 and 1")
+    if data["sequence"].duplicated().any():
+        duplicates = data.loc[data["sequence"].duplicated(False), "sequence"].unique()[:5]
+        raise ValueError("Duplicate sequences must be resolved before splitting: " + ", ".join(duplicates))
+    invalid = [
+        sequence
+        for sequence in data["sequence"]
+        if len(sequence) != 8 or any(amino_acid not in AA_TO_INDEX for amino_acid in sequence)
+    ]
+    if invalid:
+        raise ValueError("All sequences must contain exactly eight standard amino acids; examples: " + ", ".join(invalid[:5]))
+    data.insert(0, "source_row", np.arange(len(data), dtype=int))
+    return data
+
+
+def one_hot_encode(sequences):
+    sequences = [str(sequence).strip().upper() for sequence in sequences]
+    encoded = np.zeros((len(sequences), 8, 20), dtype=np.float32)
+    for row, sequence in enumerate(sequences):
+        for position, amino_acid in enumerate(sequence):
+            encoded[row, position, AA_TO_INDEX[amino_acid]] = 1.0
+    return encoded
+
+
+def set_global_seed(seed, tf=None):
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    if tf is not None:
+        tf.random.set_seed(seed)
         try:
-            encodings_reshaped = np.reshape(encodings, expected_shape)
-            print(f"成功重塑为形状: {encodings_reshaped.shape}")
-            return encodings_reshaped
-        except ValueError as e:
-            print(f"重塑错误: {e}")
-            print(f"预期形状: {expected_shape}")
-            print(f"实际数组大小: {encodings.size}")
-            
-            # 尝试重新计算正确的维度
-            total_elements = encodings.size
-            
-            # 确保元素总数能被样本数和氨基酸类型数整除
-            if total_elements % (line_number * 20) == 0:
-                actual_seq_length = total_elements // (line_number * 20)
-                print(f"根据元素总数计算的实际序列长度: {actual_seq_length}")
-                encodings_reshaped = np.reshape(encodings, (line_number, actual_seq_length, 20))
-                print(f"成功重塑为形状: {encodings_reshaped.shape}")
-                return encodings_reshaped
-            else:
-                print("无法重塑数组: 元素总数不能被样本数和氨基酸类型数整除")
-                # 尝试修复编码长度不一致的问题
-                print("尝试修复编码长度不一致的问题...")
-                
-                # 找出最长的编码长度
-                max_code_len = max(len(code) for code in encodings)
-                
-                # 确保所有编码长度一致
-                fixed_encodings = []
-                for code in encodings:
-                    if len(code) < max_code_len:
-                        # 填充短编码
-                        code.extend([0] * (max_code_len - len(code)))
-                    elif len(code) > max_code_len:
-                        # 截断长编码
-                        code = code[:max_code_len]
-                    fixed_encodings.append(code)
-                
-                fixed_encodings = np.array(fixed_encodings)
-                print(f"修复后的数组形状: {fixed_encodings.shape}")
-                
-                # 再次尝试重塑
-                if max_code_len % 20 == 0:
-                    actual_seq_length = max_code_len // 20
-                    try:
-                        result = np.reshape(fixed_encodings, (line_number, actual_seq_length, 20))
-                        print(f"修复后成功重塑为形状: {result.shape}")
-                        return result
-                    except:
-                        print("修复后仍然无法重塑")
-                        return fixed_encodings
-                else:
-                    print("修复后编码长度仍然不能被20整除")
-                    return fixed_encodings
-    except Exception as e:
-        print(f"处理编码时出错: {e}")
-        # 返回原始编码列表作为后备
-        return encodings
-'''搭建网络结构，并且进行编译 ↓ '''
+            tf.config.experimental.enable_op_determinism()
+        except Exception:
+            pass
 
 
-def calculate_metrics(labels, scores, cutoff=0.5, po_label=1):  # 计算阈值为0.5时的各性能指数
-    my_metrics = {  # 先声明建立一个字典，对应KEY值
-        'SN': 'NA',
-        'SP': 'NA',
-        'ACC': 'NA',
-        'MCC': 'NA',
-        'Recall': 'NA',
-        'Precision': 'NA',
-        'F1-score': 'NA',
-        'Cutoff': cutoff,
+def configure_tensorflow():
+    import tensorflow as tf
+
+    for gpu in tf.config.list_physical_devices("GPU"):
+        try:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        except RuntimeError:
+            pass
+    return tf
+
+
+def build_network(tf):
+    layers = tf.keras.layers
+    model = tf.keras.Sequential(
+        [
+            layers.Input(shape=(8, 20)),
+            layers.Conv1D(128, 1, padding="same", activation="relu"),
+            layers.Dropout(0.5),
+            layers.Conv1D(128, 3, padding="same", activation="relu"),
+            layers.Dropout(0.5),
+            layers.Conv1D(128, 9, padding="same", activation="relu"),
+            layers.MaxPooling1D(pool_size=2, strides=1),
+            layers.Dropout(0.5),
+            layers.Conv1D(128, 10, padding="same", activation="relu"),
+            layers.MaxPooling1D(pool_size=2, strides=1),
+            layers.Dropout(0.7),
+            layers.Dense(64, activation="relu"),
+            layers.MaxPooling1D(pool_size=2, strides=1),
+            layers.Dense(32, activation="relu"),
+            layers.MaxPooling1D(pool_size=2, strides=1),
+            layers.Dense(8, activation="relu"),
+            layers.GlobalAveragePooling1D(),
+            layers.Dense(1, activation="sigmoid"),
+        ]
+    )
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+        loss="binary_crossentropy",
+        metrics=["accuracy"],
+    )
+    return model
+
+
+def classification_metrics(y_true, probability, threshold=0.5):
+    y_true = np.asarray(y_true, dtype=int)
+    probability = np.asarray(probability, dtype=float)
+    predicted = (probability >= threshold).astype(int)
+    return {
+        "AUROC": float(roc_auc_score(y_true, probability)),
+        "AUPRC": float(average_precision_score(y_true, probability)),
+        "Accuracy": float(accuracy_score(y_true, predicted)),
+        "Precision": float(precision_score(y_true, predicted, zero_division=0)),
+        "Recall": float(recall_score(y_true, predicted, zero_division=0)),
+        "F1": float(f1_score(y_true, predicted, zero_division=0)),
+        "MCC": float(matthews_corrcoef(y_true, predicted)),
+        "Brier": float(brier_score_loss(y_true, probability)),
+        "ECE": float(expected_calibration_error(y_true, probability)),
     }
 
-    tp, tn, fp, fn = 0, 0, 0, 0
-    for i in range(len(scores)):
-        if labels[i] == po_label:  # 如果为正样本
-            if scores[i] >= cutoff:  # 阈值为0.5，如果打分大于0.5
-                tp = tp + 1  # tp+1  预测为真，实际为真的
-            else:
-                fn = fn + 1  # 实际为真，预测为负
-        else:  # 如果为负样本
-            if scores[i] < cutoff:  # 打分小于阈值，说明实际为负，预测也为负
-                tn = tn + 1  # tn+1
-            else:
-                fp = fp + 1  # 打分大于阈值，说明预测为正，实际为负
 
-    my_metrics['SN'] = tp / (tp + fn) if (tp + fn) != 0 else 'NA'  # sn 灵敏度
-    my_metrics['SP'] = tn / (fp + tn) if (fp + tn) != 0 else 'NA'  # sp 特异性
-    my_metrics['ACC'] = (tp + tn) / (tp + fn + tn + fp)  # acc正确度
-    my_metrics['MCC'] = (tp * tn - fp * fn) / np.math.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)) if ( tp + fp) * ( tp + fn) * ( tn + fp) * ( tn + fn) != 0 else 'NA'
-    my_metrics['Precision'] = tp / (tp + fp) if (tp + fp) != 0 else 'NA'  # 查准率
-    my_metrics['Recall'] = my_metrics['SN']  # 召回率
-    my_metrics['F1-score'] = 2 * tp / (2 * tp + fp + fn) if (2 * tp + fp + fn) != 0 else 'NA'
-    return my_metrics
-def drow_roc(y_true, pred):
-    # 移除matplotlib，只计算ROC数据并保存
-    try:
-        # 只导入必要的计算模块
-        from sklearn.metrics import roc_curve, auc
-        
-        # 计算ROC曲线数据
-        fpr, tpr, thresholds = roc_curve(y_true, pred)
-        roc_auc = auc(fpr, tpr)
-        
-        # 保存ROC数据到文件
-        with open('roc_data.txt', 'w') as f:
-            f.write('# AUC: {:.4f}\n'.format(roc_auc))
-            f.write('# FPR\tTPR\tThresholds\n')
-            for i in range(len(fpr)):
-                f.write('{:.6f}\t{:.6f}\t{:.6f}\n'.format(fpr[i], tpr[i], thresholds[i]))
-        
-        print(f"ROC数据已保存到roc_data.txt，AUC值: {roc_auc:.4f}")
-        return roc_auc
-        
-    except Exception as e:
-        print(f"计算ROC数据时出错: {e}")
-        return None
-
-def build_network():
-    conv_layers = [
-        layers.Conv1D(filters=128, kernel_size=1, padding='same', activation='relu'),
-        layers.Dropout(0.5),
-        layers.Conv1D(filters=128, kernel_size=3, padding='same', activation='relu'),
-        layers.Dropout(0.5),
-        layers.Conv1D(filters=128, kernel_size=9, padding='same', activation='relu'),
-        layers.MaxPooling1D(2,1),
-        layers.Dropout(0.5),
-        layers.Conv1D(filters=128, kernel_size=10, padding='same', activation='relu'),
-        layers.MaxPooling1D(pool_size=2, strides=1),
-        layers.Dropout(0.7),
-    ]
-
-    fc_layers = [
-        layers.Dense(64, activation='relu'),
-        layers.MaxPooling1D(2,1),
-        layers.Dense(32, activation='relu'),
-        layers.MaxPooling1D(2,1),
-        layers.Dense(8, activation='relu'),
-        layers.GlobalAveragePooling1D(),
-        layers.Dense(1, activation='sigmoid')
-    ]
-
-    conv_layers.extend(fc_layers)
-    network = Sequential(conv_layers)
-    network.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-    return network
+def expected_calibration_error(y_true, probability, n_bins=10):
+    y_true = np.asarray(y_true, dtype=float)
+    probability = np.asarray(probability, dtype=float)
+    edges = np.linspace(0.0, 1.0, n_bins + 1)
+    bin_index = np.clip(np.digitize(probability, edges[1:-1], right=False), 0, n_bins - 1)
+    error = 0.0
+    for index in range(n_bins):
+        selected = bin_index == index
+        if selected.any():
+            error += selected.mean() * abs(y_true[selected].mean() - probability[selected].mean())
+    return error
 
 
-'''将数据类型进行转换 ↓ '''
-def preprocess(x, y):
-    x = tf.cast(x, dtype=tf.float32)
-    y = tf.cast(y, dtype=tf.int32)
-    return x, y
+def fit_platt_calibrator(y_validation, raw_probability):
+    clipped = np.clip(np.asarray(raw_probability, dtype=float), 1e-6, 1.0 - 1e-6)
+    logits = np.log(clipped / (1.0 - clipped)).reshape(-1, 1)
+    calibrator = LogisticRegression(C=1e6, solver="lbfgs", max_iter=1000)
+    calibrator.fit(logits, np.asarray(y_validation, dtype=int))
+    return calibrator
 
-'''下面的evaluate自定义函数的作用是对训练完成的模型进行评估 ↓ '''
-mean_fpr = np.linspace(0, 1, 100)
-def evaluate(X, Y,X_vali, Y_vali, X_TEST, Y_TEST, batch_size=512, epochs=100,line_number_train=0,line_number_vali=0,line_number_test=0):
-    classes = sorted([0,1])# #set() 函数创建一个无序不重复元素集，可进行关系测试，删除重复数据，还可以计算交集、差集、并集等。
-    print(Y)
-    X_train, y_train = X, Y
-    '''将相应数据集转换为one-hot编码形式'''
-    X_train = One_Hot(X_train,line_number_train) #训练集one-hot编码之后的得到的数据集
-    X_vali = One_Hot(X_vali, line_number_vali) #验证集one-hot编码之后的得到的数据集
-    X_test = One_Hot(X_TEST,line_number_test) #测试集one-hot编码之后的得到的数据集
 
-    X_train_t = X_train
-    X_vali_t = X_vali
-    X_test_t = X_test
-    X_test_t = tf.cast(X_test_t, dtype=tf.float32)
-    '''下面六行命令之间两两类似，都是先将X与Y通过生成tf.data的形式绑定在一块，随后在下一行命令里面进行数据类型的变换，以及批量化处理 ↓ '''
-    # 构建训练集对象，随机打乱，预处理，批量化
-    train_db = tf.data.Dataset.from_tensor_slices((X_train_t, y_train)) #首先将pandas dataframe 数据格式转变为 tf.data 格式的数据集形式，这样是为了下一步数据进行打乱处理做准备，转换为tf.data格式之后，序列与label值则昂订到一块，我们就可以对其进行同步处理
-    train_db = train_db.shuffle(len(X)).map(preprocess).batch(batch_size) #其中map函数是用来将序列做一键预处理用的。该行命令：先对数据进行随机化处理，随后使用map函数进行预处理，使用batch函数指定批次数量
-    # 构建验证集对象，预处理，批量化
-    vali_db = tf.data.Dataset.from_tensor_slices((X_vali, Y_vali))
-    vali_db = vali_db.shuffle(len(X_vali_t)).map(preprocess).batch(batch_size)
-    # 构建测试集对象，预处理，批量化
-    test_db = tf.data.Dataset.from_tensor_slices((X_test_t, Y_TEST))
-    test_db = test_db.shuffle(len(X_test_t)).map(preprocess).batch(batch_size)
-    '''调用已经搭建好的神经网络，并进行训练，并将独立测试集的测试结果输出'''
-    network = build_network()
+def apply_platt_calibrator(calibrator, raw_probability):
+    clipped = np.clip(np.asarray(raw_probability, dtype=float), 1e-6, 1.0 - 1e-6)
+    logits = np.log(clipped / (1.0 - clipped)).reshape(-1, 1)
+    return calibrator.predict_proba(logits)[:, 1]
 
-    checkpoint = ModelCheckpoint( model_save_path,monitor='val_accuracy', verbose=1, save_best_only=True, mode='auto', save_weights_only=True)
-    early_stopping = EarlyStopping(monitor='val_loss', patience=20)
-    callbacks_list = [checkpoint,early_stopping]
-    history = network.fit(train_db,  validation_data=vali_db,epochs=epochs,verbose=1,callbacks = [callbacks_list])#,callbacks = [early_stopping]
-    print("Independent test:", network.evaluate(test_db))
-    tmp_result = np.zeros((len(Y_TEST), len(classes)))
-    predict=network.predict(X_test_t, batch_size=batch_size)
-    tmp_result[:, 0], tmp_result[:, 1] = Y_TEST, predict[:, 0]
-    matrix=[]
-    drow_roc(Y_TEST,predict)
-    matrix.append(calculate_metrics(Y_TEST, predict))
-    df = pd.DataFrame(matrix).to_csv(metrics_path)
-    network.save(model_save_path, save_format='tf')
-    return tmp_result, history, Y_TEST
 
-'''下面的main自定义函数的作用主要为对以上的函数进行调用（主函数）'''
+def stratified_bootstrap(y_true, probability, replicates, seed, threshold=0.5):
+    if replicates <= 0:
+        return {}
+    y_true = np.asarray(y_true, dtype=int)
+    probability = np.asarray(probability, dtype=float)
+    rng = np.random.RandomState(seed)
+    class_indices = [np.flatnonzero(y_true == label) for label in sorted(np.unique(y_true))]
+    values = {}
+    for _ in range(replicates):
+        sampled = np.concatenate(
+            [rng.choice(indices, size=len(indices), replace=True) for indices in class_indices]
+        )
+        metrics = classification_metrics(y_true[sampled], probability[sampled], threshold)
+        for name, value in metrics.items():
+            values.setdefault(name, []).append(value)
+    return {
+        name: {
+            "estimate": classification_metrics(y_true, probability, threshold)[name],
+            "ci_2.5": float(np.percentile(samples, 2.5)),
+            "ci_97.5": float(np.percentile(samples, 97.5)),
+            "replicates": int(replicates),
+        }
+        for name, samples in values.items()
+    }
+
+
+def select_f1_threshold(y_true, probability):
+    precision, recall, thresholds = precision_recall_curve(y_true, probability)
+    if len(thresholds) == 0:
+        return 0.5
+    values = 2.0 * precision[:-1] * recall[:-1] / np.maximum(
+        precision[:-1] + recall[:-1], 1e-12
+    )
+    return float(thresholds[int(np.nanargmax(values))])
+
+
+def fit_for_epoch_selection(tf, x_train, y_train, x_validation, y_validation, args, seed):
+    tf.keras.backend.clear_session()
+    set_global_seed(seed, tf)
+    model = build_network(tf)
+    callback = tf.keras.callbacks.EarlyStopping(
+        monitor="val_loss",
+        patience=args.patience,
+        restore_best_weights=True,
+        verbose=0,
+    )
+    start = time.perf_counter()
+    history = model.fit(
+        x_train,
+        y_train,
+        validation_data=(x_validation, y_validation),
+        batch_size=args.batch_size,
+        epochs=args.epochs,
+        callbacks=[callback],
+        shuffle=True,
+        verbose=args.verbose,
+    )
+    elapsed = time.perf_counter() - start
+    best_epoch = int(np.argmin(history.history["val_loss"]) + 1)
+    return model, history, best_epoch, elapsed
+
+
+def refit_and_predict(tf, x_train, y_train, x_evaluation, best_epoch, args, seed):
+    tf.keras.backend.clear_session()
+    set_global_seed(seed, tf)
+    model = build_network(tf)
+    start = time.perf_counter()
+    history = model.fit(
+        x_train,
+        y_train,
+        batch_size=args.batch_size,
+        epochs=max(1, best_epoch),
+        shuffle=True,
+        verbose=args.verbose,
+    )
+    training_seconds = time.perf_counter() - start
+    prediction_start = time.perf_counter()
+    probability = model.predict(x_evaluation, batch_size=args.batch_size, verbose=0).reshape(-1)
+    prediction_seconds = time.perf_counter() - prediction_start
+    return model, history, probability, training_seconds, prediction_seconds
+
+
+def history_frame(history):
+    frame = pd.DataFrame(history.history)
+    frame.insert(0, "epoch", np.arange(1, len(frame) + 1, dtype=int))
+    return frame
+
+
+def plot_cv_roc(y_true, probability, fold_curves, output_path):
+    figure, axis = plt.subplots(figsize=(6, 6))
+    for fold, fpr, tpr, fold_auc in fold_curves:
+        axis.plot(fpr, tpr, alpha=0.25, linewidth=1, label="Fold %d (%.3f)" % (fold, fold_auc))
+    fpr, tpr, _ = roc_curve(y_true, probability)
+    pooled_auc = roc_auc_score(y_true, probability)
+    axis.plot(fpr, tpr, color="black", linewidth=2, label="Pooled OOF (%.3f)" % pooled_auc)
+    axis.plot([0, 1], [0, 1], "--", color="grey")
+    axis.set(xlabel="False positive rate", ylabel="True positive rate", title="10-fold cross-validation ROC")
+    axis.legend(loc="lower right", fontsize=7, ncol=2)
+    figure.tight_layout()
+    figure.savefig(output_path, dpi=300)
+    plt.close(figure)
+
+
+def plot_independent_roc(y_true, probability, output_path):
+    fpr, tpr, _ = roc_curve(y_true, probability)
+    auc_value = roc_auc_score(y_true, probability)
+    figure, axis = plt.subplots(figsize=(6, 6))
+    axis.plot(fpr, tpr, linewidth=2, label="Independent test (AUC = %.3f)" % auc_value)
+    axis.plot([0, 1], [0, 1], "--", color="grey")
+    axis.set(xlabel="False positive rate", ylabel="True positive rate", title="Independent 20% test ROC")
+    axis.legend(loc="lower right")
+    figure.tight_layout()
+    figure.savefig(output_path, dpi=300)
+    plt.close(figure)
+
+
+def plot_precision_recall(y_true, probability, output_path, title):
+    precision, recall, _ = precision_recall_curve(y_true, probability)
+    auprc = average_precision_score(y_true, probability)
+    figure, axis = plt.subplots(figsize=(6, 6))
+    axis.plot(recall, precision, linewidth=2, label="AUPRC = %.3f" % auprc)
+    axis.set(xlabel="Recall", ylabel="Precision", title=title)
+    axis.legend(loc="lower left")
+    figure.tight_layout()
+    figure.savefig(output_path, dpi=300)
+    plt.close(figure)
+
+
+def plot_reliability(y_true, probability, output_path, n_bins=10, raw_probability=None):
+    y_true = np.asarray(y_true, dtype=float)
+    probability = np.asarray(probability, dtype=float)
+    edges = np.linspace(0.0, 1.0, n_bins + 1)
+    bin_index = np.clip(np.digitize(probability, edges[1:-1]), 0, n_bins - 1)
+    observed, predicted, counts = [], [], []
+    for index in range(n_bins):
+        selected = bin_index == index
+        if selected.any():
+            observed.append(float(y_true[selected].mean()))
+            predicted.append(float(probability[selected].mean()))
+            counts.append(int(selected.sum()))
+    calibration = pd.DataFrame(
+        {"mean_predicted_probability": predicted, "observed_positive_fraction": observed, "n": counts}
+    )
+    calibration.to_csv(Path(output_path).with_suffix(".tsv"), sep="\t", index=False)
+    figure, axis = plt.subplots(figsize=(6, 6))
+    axis.plot([0, 1], [0, 1], "--", color="grey", label="Perfect calibration")
+    if raw_probability is not None:
+        raw_probability = np.asarray(raw_probability, dtype=float)
+        raw_bins = np.clip(np.digitize(raw_probability, edges[1:-1]), 0, n_bins - 1)
+        raw_observed, raw_predicted = [], []
+        for index in range(n_bins):
+            selected = raw_bins == index
+            if selected.any():
+                raw_observed.append(float(y_true[selected].mean()))
+                raw_predicted.append(float(raw_probability[selected].mean()))
+        axis.plot(raw_predicted, raw_observed, marker="o", linewidth=1.5, label="Raw")
+    axis.plot(predicted, observed, marker="o", linewidth=2, label="Platt calibrated")
+    axis.set(
+        xlabel="Mean predicted probability",
+        ylabel="Observed positive fraction",
+        title="Independent-test reliability plot",
+        xlim=(0, 1),
+        ylim=(0, 1),
+    )
+    axis.legend(loc="upper left")
+    figure.tight_layout()
+    figure.savefig(output_path, dpi=300)
+    plt.close(figure)
+
+
 def main():
-    os.chdir(data_path)
-    epoch = 200
-    '''0、将正样本与负样本中的信息先提取出来，包括sequence、label'''
-    positive_sequence, positive_linenumber, positive_label = process('positive')
-    negative_sequence, negative_linenumber, negative_label = process('negative')
-    '''1、将正样本与负样本进行平衡,并将相应的数据合二为一'''
-    # print('line_number:'+str(positive_sequence))
-    # print('chang du:'+str(len(positive_sequence)))
-    # positive_sequence_balance,positive_label_balance,p_sequence_balance,p_label_balance= random_dataset_number(positive_sequence, positive_label, sample_num=positive_linenumber) #sample_num是需要提取的正负样本的数量：6102
-    # negative_sequence_balance,negative_label_balance,n_sequence_balance,n_label_balance= random_dataset_number(negative_sequence, negative_label, sample_num=positive_linenumber) #sample_num是需要提取的正负样本的数量：6102
-    # sequence_balance = pd.concat([p_sequence_balance, n_sequence_balance])  # 将带有’sequence‘表头的正负样本中的sequence数据合二为一
-    # label_balance = pd.concat([p_label_balance, n_label_balance])  # 将带有’label‘表头的正负样本中的sequence数据合二为一
-    # balance_merge = pd.concat([sequence_balance, label_balance],axis=1,names=['sequence','label'])  # 将sequence数据与label数据合二为一
-    # balance_merge.to_csv('balance.csv', encoding='gbk',sep='\t')  # 将测试集的数据保存到文件夹中去
-    # balance_sequence, balance_linenumber, balance_label = process('balance.csv')
-    # print('balance_sequence:'+str(balance_sequence))
-    '''2、将独立测试集划分出来，划分之前首先判断文件夹中是否存在独立测试集'''
-    if os.path.isfile('test_+10.csv'):
-        print('测试集文件存在')
-        independent_test_sequence, independent_test_linenumber, independent_test_label=process('test_+10.csv')
-        train_vali_sequence, train_vali_linenumber, train_vali_label = process('train+vali_+10.csv')
-    #'''在else中所进行的几个步骤：1、先按照比例将独立测试集的正负样本的sequence和label都提取出来。2、将提取出来的正负样本的sequence以及label都合成为一个文件。3、将sequence以及label合成为一个文件，并且保存'''
-    else:
-        print('未划分训练集，测试集！！！','\n')
-        positive_sequence_test, positive_label_test,positive_sequence_train, positive_label_train,p_sequence_test,p_label_test,p_sequence_train_vali,p_label_test_train_vali = random_dataset_percent(positive_sequence, positive_label,percent=0.2)  # 独立测试集正样本取出比例为0.2,sequence_test,label_test是带表头的数据，另外的两个sequence、label不带表头
-        negative_sequence_test, negative_label_test, negative_sequence_train, negative_label_train,n_sequence_test,n_label_test,n_sequence_train_vali,n_label_test_train_vali = random_dataset_percent(negative_sequence, negative_label,percent=0.2)  # 独立测试集正样本取出比例为0.2
-        independent_test_sequence = pd.concat([p_sequence_test, n_sequence_test]) #将带有’sequence‘表头的正负样本中的sequence数据合二为一
-        independent_test_label = pd.concat([p_label_test, n_label_test]) #将带有’label‘表头的正负样本中的sequence数据合二为一
+    args = parse_args()
+    if args.folds != 10:
+        print("Warning: the supplied reference workflow uses --folds 10.")
+    output_dir = Path(args.output_dir)
+    split_dir = output_dir / "splits"
+    cv_dir = output_dir / "cross_validation"
+    final_dir = output_dir / "final_model"
+    split_dir.mkdir(parents=True, exist_ok=True)
+    cv_dir.mkdir(parents=True, exist_ok=True)
 
-        test_merge = pd.concat([independent_test_sequence, independent_test_label], axis=1,names=['sequence','label']) #将sequence数据与label数据合二为一
-        test_merge.to_csv('test_+10.csv', encoding='gbk',sep='\t') #将测试集的数据保存到文件夹中去
-        independent_test_sequence, independent_test_linenumber, independent_test_label = process('test_+10.csv')
+    data = read_data(args.positive_file, args.negative_file)
+    all_indices = np.arange(len(data), dtype=int)
+    development_indices, test_indices = train_test_split(
+        all_indices,
+        test_size=args.test_size,
+        random_state=args.seed,
+        shuffle=True,
+        stratify=data["label"].to_numpy(),
+    )
+    development = data.iloc[development_indices].copy()
+    independent_test = data.iloc[test_indices].copy()
+    development.to_csv(split_dir / "development_80.tsv", sep="\t", index=False)
+    independent_test.to_csv(split_dir / "independent_test_20.tsv", sep="\t", index=False)
 
-        '''将已经抽出test后剩下的数据集用来拆分成训练集以及验证集，再次之前先做一些预处理'''
-        sequence_train_vali = pd.concat([p_sequence_train_vali, n_sequence_train_vali])  # 将带有’sequence‘表头的正负样本中的sequence数据合二为一
-        label_train_vali = pd.concat([p_label_test_train_vali, n_label_test_train_vali])  # 将带有’label‘表头的正负样本中的sequence数据合二为一
-        train_vali_merge = pd.concat([sequence_train_vali, label_train_vali], axis=1,names=['sequence', 'label'])  # 将sequence数据与label数据合二为一
-        train_vali_merge.to_csv('train+vali_+10.csv', encoding='gbk', sep='\t')  # 将测试集的数据保存到文件夹中去
-        train_vali_sequence, train_vali_linenumber, train_vali_label = process('train+vali_+10.csv')
-        print('##################################划分测试集成功，训练集测试集文件名称分别为：train+vali_+10.csv','\t','test_+10######################################','\n')
-    '''3、接下来，拆分训练集以及验证集'''
-    from sklearn.model_selection import train_test_split
-    os.chdir(result_path)
-    '''4、得到可用于输入到模型中的独立测试集'''
-    X_TEST=independent_test_sequence
-    Y_TEST=independent_test_label
-    x_vali, y_vali=X_TEST,Y_TEST
-    ind_res, history, y_test = evaluate(train_vali_sequence, train_vali_label,x_vali, y_vali, X_TEST,Y_TEST,epochs=epoch, batch_size=64,line_number_train=train_vali_linenumber,line_number_vali=independent_test_linenumber,line_number_test=independent_test_linenumber)
-    save_predict_result(ind_res, 'dp_sh_221005_20%_test.txt')
-    acc = history.history['accuracy']
-    val_acc = history.history['val_accuracy']
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
+    if set(development["source_row"]) & set(independent_test["source_row"]):
+        raise AssertionError("Development and independent test sets overlap")
 
-    # 使用辅助函数绘制和保存图表，避免直接导入matplotlib
-    save_training_plots(acc, val_acc, loss, val_loss)
+    cv_splitter = StratifiedKFold(n_splits=args.folds, shuffle=True, random_state=args.seed)
+    fold_assignments = development.loc[:, ["source_row", "sequence", "label"]].copy()
+    fold_assignments["outer_fold"] = 0
+    fold_splits = []
+    for fold, (outer_train_relative, outer_validation_relative) in enumerate(
+        cv_splitter.split(development["sequence"], development["label"]), start=1
+    ):
+        fold_assignments.iloc[outer_validation_relative, fold_assignments.columns.get_loc("outer_fold")] = fold
+        fold_splits.append((fold, outer_train_relative, outer_validation_relative))
+    fold_assignments.to_csv(split_dir / "development_10fold_assignments.tsv", sep="\t", index=False)
 
-#储存结果的自定义函数
-def save_training_plots(acc, val_acc, loss, val_loss):
-    # 移除matplotlib，只保存训练数据到文件
-    try:
-        # 保存训练数据到文件
-        with open('training_metrics.txt', 'w') as f:
-            f.write('# 训练指标数据\n')
-            f.write('# Epoch\tTrain_Acc\tVal_Acc\tTrain_Loss\tVal_Loss\n')
-            
-            # 写入每个epoch的数据
-            for i in range(len(acc)):
-                train_acc_val = acc[i] if i < len(acc) else 'N/A'
-                val_acc_val = val_acc[i] if i < len(val_acc) else 'N/A'
-                train_loss_val = loss[i] if i < len(loss) else 'N/A'
-                val_loss_val = val_loss[i] if i < len(val_loss) else 'N/A'
-                
-                f.write(f"{i+1}\t{train_acc_val}\t{val_acc_val}\t{train_loss_val}\t{val_loss_val}\n")
-        
-        # 输出最终指标摘要
-        final_epoch = len(acc)
-        final_train_acc = acc[-1] if acc else 'N/A'
-        final_val_acc = val_acc[-1] if val_acc else 'N/A'
-        final_train_loss = loss[-1] if loss else 'N/A'
-        final_val_loss = val_loss[-1] if val_loss else 'N/A'
-        
-        print(f"训练指标已保存到training_metrics.txt")
-        print(f"最终指标 (第{final_epoch}轮):")
-        print(f"  训练准确率: {final_train_acc}")
-        print(f"  验证准确率: {final_val_acc}")
-        print(f"  训练损失: {final_train_loss}")
-        print(f"  验证损失: {final_val_loss}")
-        
-    except Exception as e:
-        print(f"保存训练指标时出错: {e}")
-        
-#储存结果的自定义函数
-def save_predict_result(data, output):
-    with open(output, 'w') as f:
-        f.write('# result for true and predict\n')
-        for i in data:
-            f.write('%d\t%f\n' % (i[0], float(i[1])))
-    return None
+    split_manifest = {
+        "design": "80% development plus 20% untouched independent test; outer 10-fold CV only within development",
+        "split_seed": int(args.seed),
+        "n_total": int(len(data)),
+        "n_development": int(len(development)),
+        "n_independent_test": int(len(independent_test)),
+        "test_fraction": float(args.test_size),
+        "outer_folds": int(args.folds),
+        "inner_validation_fraction_of_outer_training": float(args.inner_validation_size),
+        "test_used_for_early_stopping": False,
+        "outer_fold_used_for_early_stopping": False,
+    }
+    save_json(split_manifest, split_dir / "split_manifest.json")
 
-#运行main函数
-def random_dataset_number(data,label,sample_num):
-    '''随机产生一组数，加上random.seed(1)之后就可以保持每次循环所用的数是一样的，这里选择的是直接输入样本数量；还有另外一种方法，是输入取值所占百分比:1、平衡正负样本'''
-    import random
-    random.seed(1)  # 此行代码：括号里面是0，则每次产生的数组不一样，是1的话每次产生的数组是一样的
-    sample_list = [i for i in range(len(data))]  # [0, 1, 2, 3, 4, 5, 6, 7]
-    sample_list = random.sample(sample_list, sample_num)  # 随机选取出了 [3, 4, 2, 0]
-    sample_data = [data[i] for i in sample_list]  # ['d', 'e', 'c', 'a']
-    sample_label = [label[i] for i in sample_list]  # [3, 4, 2, 0]
+    if args.split_only:
+        print("Split-only audit completed:", split_manifest)
+        return
 
-    import pandas as pd
-    '''保存list'''
-    name1 = ['sequence']
-    sequence = pd.DataFrame(columns=name1, data=sample_data)  # 定义数据的表头以及数据,此行命令保存的是数据那一列
-    name2 = ['label']
-    label = pd.DataFrame(columns=name2, data=sample_label)  # 定义数据的表头以及数据,此行命令保存的是label那一列
-    return sample_data,sample_label,sequence,label
-def random_dataset_percent(data,label,percent):
-    '''随机产生一组数，加上random.seed(1)之后就可以保持每次循环所用的数是一样的，这里选择的是独立测试集所占百分比:2、提取独立测试集的自定函数'''
-    import random
-    sample_num = int(percent * len(data))  # 假设取20%的数据作为独立测试集
-    random.seed(2)  # 此行代码：括号里面是0，则每次产生的数组不一样，是非0的话每次产生的数组是一样的，保证每次提取的独立测试集都相同
-    sample_list_all = [i for i in range(len(data))]  # [0, 1, 2, 3, 4, 5, 6, 7]
-    sample_list = random.sample(sample_list_all, sample_num)  # 随机选取出了 [3, 4, 2, 0]
-    sample_difference = list(set(sample_list_all).difference(set(sample_list)))
-    sample_test_data = [data[i] for i in sample_list]  # ['d', 'e', 'c', 'a']
-    sample_test_label = [label[i] for i in sample_list]  # [3, 4, 2, 0]
-    sample_train_data = [data[i] for i in sample_difference]  # ['d', 'e', 'c', 'a']
-    sample_train_label = [label[i] for i in sample_difference]  # [3, 4, 2, 0]
-    import pandas as pd
-    '''保存list'''
-    name = ['sequence']
-    sequence = pd.DataFrame(columns=name, data=sample_test_data)  # 定义数据的表头以及数据,此行命令保存的是数据那一列
-    name = ['label']
-    label = pd.DataFrame(columns=name, data=sample_test_label)  # 定义数据的表头以及数据,此行命令保存的是label那一列
-    '''保存train_vali的list'''
-    name = ['sequence']
-    sequence_train = pd.DataFrame(columns=name, data=sample_train_data)  # 定义数据的表头以及数据,此行命令保存的是数据那一列
-    name = ['label']
-    label_train = pd.DataFrame(columns=name, data=sample_train_label)  # 定义数据的表头以及数据,此行命令保存的是label那一列
-    return sample_test_data,sample_test_label,sample_train_data,sample_train_label,sequence,label,sequence_train,label_train
+    analysis_started = time.perf_counter()
+    tf = configure_tensorflow()
+    x_development = one_hot_encode(development["sequence"])
+    y_development = development["label"].to_numpy(dtype=int)
+    x_test = one_hot_encode(independent_test["sequence"])
+    y_test = independent_test["label"].to_numpy(dtype=int)
 
-if __name__ == '__main__':
+    oof_probability = np.full(len(development), np.nan, dtype=float)
+    fold_rows = []
+    fold_curves = []
+    for fold, outer_train_relative, outer_validation_relative in fold_splits:
+        fold_output = cv_dir / ("fold_%02d" % fold)
+        fold_output.mkdir(parents=True, exist_ok=True)
+        inner_train_relative, inner_validation_relative = train_test_split(
+            outer_train_relative,
+            test_size=args.inner_validation_size,
+            random_state=args.seed + fold,
+            shuffle=True,
+            stratify=y_development[outer_train_relative],
+        )
+        if set(inner_train_relative) & set(inner_validation_relative):
+            raise AssertionError("Inner training and validation sets overlap")
+        if set(outer_train_relative) & set(outer_validation_relative):
+            raise AssertionError("Outer training and validation sets overlap")
+
+        selection_model, selection_history, best_epoch, selection_seconds = fit_for_epoch_selection(
+            tf,
+            x_development[inner_train_relative],
+            y_development[inner_train_relative],
+            x_development[inner_validation_relative],
+            y_development[inner_validation_relative],
+            args,
+            args.seed + fold,
+        )
+        del selection_model
+        model, refit_history, probability, refit_seconds, prediction_seconds = refit_and_predict(
+            tf,
+            x_development[outer_train_relative],
+            y_development[outer_train_relative],
+            x_development[outer_validation_relative],
+            best_epoch,
+            args,
+            args.seed + fold,
+        )
+        del model
+        oof_probability[outer_validation_relative] = probability
+        metrics = classification_metrics(y_development[outer_validation_relative], probability)
+        row = {
+            "fold": fold,
+            "n_outer_train": int(len(outer_train_relative)),
+            "n_inner_train": int(len(inner_train_relative)),
+            "n_inner_validation": int(len(inner_validation_relative)),
+            "n_outer_validation": int(len(outer_validation_relative)),
+            "best_epoch": int(best_epoch),
+            "selection_training_seconds": float(selection_seconds),
+            "refit_training_seconds": float(refit_seconds),
+            "prediction_seconds": float(prediction_seconds),
+        }
+        row.update(metrics)
+        fold_rows.append(row)
+        fpr, tpr, _ = roc_curve(y_development[outer_validation_relative], probability)
+        fold_curves.append((fold, fpr, tpr, metrics["AUROC"]))
+
+        history_frame(selection_history).to_csv(fold_output / "epoch_selection_history.csv", index=False)
+        history_frame(refit_history).to_csv(fold_output / "refit_history.csv", index=False)
+        predictions = development.iloc[outer_validation_relative][["source_row", "sequence", "label"]].copy()
+        predictions["probability"] = probability
+        predictions.to_csv(fold_output / "outer_fold_predictions.tsv", sep="\t", index=False)
+
+    if np.isnan(oof_probability).any():
+        raise AssertionError("Each development observation must receive exactly one out-of-fold prediction")
+
+    fold_metrics = pd.DataFrame(fold_rows)
+    fold_metrics.to_csv(cv_dir / "fold_metrics.csv", index=False)
+    metric_names = ["AUROC", "AUPRC", "Accuracy", "Precision", "Recall", "F1", "MCC", "Brier", "ECE"]
+    cv_summary = {
+        "n_folds": int(args.folds),
+        "mean_fold_metrics": {name: float(fold_metrics[name].mean()) for name in metric_names},
+        "sd_fold_metrics": {name: float(fold_metrics[name].std(ddof=1)) for name in metric_names},
+        "pooled_out_of_fold_metrics": classification_metrics(y_development, oof_probability),
+    }
+    save_json(cv_summary, cv_dir / "cv_summary.json")
+    oof = development[["source_row", "sequence", "label"]].copy()
+    oof["outer_fold"] = fold_assignments["outer_fold"].to_numpy()
+    oof["probability"] = oof_probability
+    oof.to_csv(cv_dir / "out_of_fold_predictions.tsv", sep="\t", index=False)
+    plot_cv_roc(y_development, oof_probability, fold_curves, cv_dir / "ten_fold_cv_roc.png")
+    plot_precision_recall(
+        y_development,
+        oof_probability,
+        cv_dir / "ten_fold_cv_precision_recall.png",
+        "10-fold cross-validation precision-recall curve",
+    )
+    development_calibrator = fit_platt_calibrator(y_development, oof_probability)
+    calibrated_oof_probability = apply_platt_calibrator(development_calibrator, oof_probability)
+    classification_threshold = select_f1_threshold(y_development, calibrated_oof_probability)
+    save_json(
+        {
+            "coefficient": float(development_calibrator.coef_[0, 0]),
+            "intercept": float(development_calibrator.intercept_[0]),
+            "fitted_on": "pooled out-of-fold predictions from the 80% development set",
+            "classification_threshold": classification_threshold,
+            "threshold_selection": "maximum F1 on calibrated development OOF predictions",
+            "test_data_used": False,
+        },
+        cv_dir / "development_oof_platt_calibration.json",
+    )
+
+    final_inner_train, final_inner_validation = train_test_split(
+        np.arange(len(development), dtype=int),
+        test_size=args.inner_validation_size,
+        random_state=args.seed + 1000,
+        shuffle=True,
+        stratify=y_development,
+    )
+    repeated_dir = output_dir / "repeated_training"
+    repeated_dir.mkdir(parents=True, exist_ok=True)
+    repeated_rows = []
+    raw_test_predictions = []
+    calibrated_test_predictions = []
+    selected = None
+    for training_seed in args.training_seeds:
+        selection_model, selection_history, best_epoch, selection_seconds = fit_for_epoch_selection(
+            tf,
+            x_development[final_inner_train],
+            y_development[final_inner_train],
+            x_development[final_inner_validation],
+            y_development[final_inner_validation],
+            args,
+            training_seed,
+        )
+        minimum_validation_loss = float(np.min(selection_history.history["val_loss"]))
+        del selection_model
+        model, final_history, raw_probability, refit_seconds, prediction_seconds = refit_and_predict(
+            tf, x_development, y_development, x_test, best_epoch, args, training_seed
+        )
+        calibrated_probability = apply_platt_calibrator(development_calibrator, raw_probability)
+        repeated_rows.append(
+            {
+                "training_seed": training_seed,
+                "best_epoch": best_epoch,
+                "minimum_validation_loss": minimum_validation_loss,
+                "selection_training_seconds": selection_seconds,
+                "refit_training_seconds": refit_seconds,
+                "test_prediction_seconds": prediction_seconds,
+            }
+        )
+        history_frame(selection_history).to_csv(
+            repeated_dir / ("seed_%d_selection_history.csv" % training_seed), index=False
+        )
+        raw_test_predictions.append(raw_probability)
+        calibrated_test_predictions.append(calibrated_probability)
+        candidate = {
+                "seed": training_seed,
+                "validation_loss": minimum_validation_loss,
+                "best_epoch": best_epoch,
+                "history": final_history,
+                "selection_seconds": selection_seconds,
+                "refit_seconds": refit_seconds,
+                "prediction_seconds": prediction_seconds,
+            }
+        if selected is None or (candidate["validation_loss"], candidate["seed"]) < (
+            selected["validation_loss"], selected["seed"]
+        ):
+            selected = candidate
+        del model
+
+    # Test labels are used here only after all independently seeded models have
+    # completed training; no test result is fed back into model selection.
+    for metadata, calibrated_probability in zip(repeated_rows, calibrated_test_predictions):
+        metadata.update(
+            classification_metrics(y_test, calibrated_probability, classification_threshold)
+        )
+    repeated_metrics = pd.DataFrame(repeated_rows)
+    repeated_metrics.to_csv(repeated_dir / "metrics_per_seed.csv", index=False)
+    repeated_summary = {
+        metric: {
+            "mean": float(repeated_metrics[metric].mean()),
+            "sd": float(repeated_metrics[metric].std(ddof=1)),
+            "n_independent_runs": int(len(repeated_metrics)),
+        }
+        for metric in ["AUROC", "AUPRC", "Accuracy", "Precision", "Recall", "F1", "MCC", "Brier", "ECE"]
+    }
+    save_json(repeated_summary, repeated_dir / "metrics_mean_sd.json")
+
+    raw_ensemble_probability = np.mean(np.asarray(raw_test_predictions), axis=0)
+    ensemble_probability = np.mean(np.asarray(calibrated_test_predictions), axis=0)
+    ensemble_uncertainty = np.std(np.asarray(calibrated_test_predictions), axis=0, ddof=1)
+    ensemble_metrics = classification_metrics(y_test, ensemble_probability, classification_threshold)
+    ensemble_ci = stratified_bootstrap(
+        y_test,
+        ensemble_probability,
+        args.bootstrap_replicates,
+        args.seed + 2000,
+        classification_threshold,
+    )
+    ensemble_frame = independent_test[["source_row", "sequence", "label"]].copy()
+    ensemble_frame["raw_probability_mean"] = raw_ensemble_probability
+    ensemble_frame["calibrated_probability_mean"] = ensemble_probability
+    ensemble_frame["deep_ensemble_probability_sd"] = ensemble_uncertainty
+    ensemble_frame.to_csv(repeated_dir / "ensemble_test_predictions.tsv", sep="\t", index=False)
+    save_json(
+        {
+            "metrics": ensemble_metrics,
+            "bootstrap_95_ci": ensemble_ci,
+            "n_training_seeds": len(args.training_seeds),
+        },
+        repeated_dir / "ensemble_summary.json",
+    )
+    save_json(
+        {
+            "method": "standard deviation across independently initialized final-training models",
+            "scope": "deep-ensemble epistemic disagreement; not a complete predictive interval",
+            "n_training_seeds": len(args.training_seeds),
+            "mean_predictive_sd": float(np.mean(ensemble_uncertainty)),
+            "median_predictive_sd": float(np.median(ensemble_uncertainty)),
+            "predictive_sd_95th_percentile": float(np.percentile(ensemble_uncertainty, 95)),
+        },
+        repeated_dir / "uncertainty_summary.json",
+    )
+
+    if selected is None:
+        raise AssertionError("No final-training model was produced")
+    best_epoch = selected["best_epoch"]
+    selection_seconds = selected["selection_seconds"]
+    final_model, final_history, test_probability_raw, refit_seconds, prediction_seconds = refit_and_predict(
+        tf,
+        x_development,
+        y_development,
+        x_test,
+        best_epoch,
+        args,
+        selected["seed"],
+    )
+    test_probability = apply_platt_calibrator(development_calibrator, test_probability_raw)
+    final_dir.mkdir(parents=True, exist_ok=True)
+    final_model.save(str(final_dir / "saved_model"), save_format="tf", include_optimizer=False)
+    history_frame(final_history).to_csv(final_dir / "refit_history.csv", index=False)
+    save_json(
+        {
+            "coefficient": float(development_calibrator.coef_[0, 0]),
+            "intercept": float(development_calibrator.intercept_[0]),
+            "fitted_on": "pooled OOF predictions from the 80% development set",
+            "classification_threshold": classification_threshold,
+        },
+        final_dir / "platt_calibration.json",
+    )
+
+    test_predictions = independent_test[["source_row", "sequence", "label"]].copy()
+    test_predictions["probability"] = test_probability
+    test_predictions.to_csv(final_dir / "independent_test_predictions.tsv", sep="\t", index=False)
+    test_metrics = classification_metrics(y_test, test_probability, classification_threshold)
+    test_ci = stratified_bootstrap(
+        y_test,
+        test_probability,
+        args.bootstrap_replicates,
+        args.seed + 3000,
+        classification_threshold,
+    )
+    final_summary = {
+        "selected_training_seed": int(selected["seed"]),
+        "selection_rule": "minimum inner-validation loss; test metrics were not used",
+        "best_epoch_selected_without_test_data": int(best_epoch),
+        "n_development_refit": int(len(development)),
+        "n_independent_test": int(len(independent_test)),
+        "selection_training_seconds": float(selection_seconds),
+        "refit_training_seconds": float(refit_seconds),
+        "independent_test_prediction_seconds": float(prediction_seconds),
+        "independent_test_metrics": test_metrics,
+        "bootstrap_95_ci": test_ci,
+        "test_used_for_early_stopping_or_model_selection": False,
+    }
+    save_json(final_summary, final_dir / "independent_test_summary.json")
+    plot_independent_roc(y_test, test_probability, final_dir / "independent_test_roc.png")
+    plot_precision_recall(
+        y_test,
+        test_probability,
+        final_dir / "independent_test_precision_recall.png",
+        "Independent 20% test precision-recall curve",
+    )
+    plot_reliability(
+        y_test,
+        test_probability,
+        final_dir / "independent_test_reliability.png",
+        raw_probability=test_probability_raw,
+    )
+    plot_reliability(
+        y_test,
+        ensemble_probability,
+        repeated_dir / "ensemble_reliability.png",
+        raw_probability=raw_ensemble_probability,
+    )
+
+    run_configuration = vars(args).copy()
+    run_configuration.update(
+        {
+            "python_version": platform.python_version(),
+            "tensorflow_version": tf.__version__,
+            "numpy_version": np.__version__,
+            "pandas_version": pd.__version__,
+            "elapsed_seconds": float(time.perf_counter() - analysis_started),
+            "test_used_for_model_selection": False,
+        }
+    )
+    save_json(run_configuration, output_dir / "run_configuration.json")
+    print("10-fold mean AUROC: %.6f +/- %.6f" % (
+        cv_summary["mean_fold_metrics"]["AUROC"],
+        cv_summary["sd_fold_metrics"]["AUROC"],
+    ))
+    print("Independent 20%% test AUROC: %.6f" % test_metrics["AUROC"])
+    print("Results:", output_dir.resolve())
+
+
+if __name__ == "__main__":
     main()
-'''1、平衡正负样本
-   2、先把独立测试集按比例拆分出来（正负样本分别提取、然后合并），加上判断测试集文件是否存在的命令
-   3、取出独立测试集之后的正样本负样本都随机按比例拆分成训练集、验证集，训练过程中保证每次所拆分的训练集与验证集保持不变
-   4、按照原来代码中就有的函数将label与sequence合成一个文件（确保一一对应），然后随机化打乱处理
-   5、训练集：验证集：测试集=6:2:2'''

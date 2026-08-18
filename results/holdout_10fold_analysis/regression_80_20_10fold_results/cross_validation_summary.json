@@ -1,0 +1,33 @@
+{
+  "fold_mean_and_sd": {
+    "mae": {
+      "mean": 0.20036436096706306,
+      "sd": 0.011349730023407383
+    },
+    "pearson_r": {
+      "mean": 0.8677920894039023,
+      "sd": 0.016633614293209732
+    },
+    "r2": {
+      "mean": 0.7463666183108552,
+      "sd": 0.029507228574798813
+    },
+    "rmse": {
+      "mean": 0.29237359887598163,
+      "sd": 0.02014961027737181
+    },
+    "spearman_rho": {
+      "mean": 0.8285165162897499,
+      "sd": 0.013880859503523139
+    }
+  },
+  "fold_method": "quantile-stratified",
+  "pooled_out_of_fold_metrics": {
+    "mae": 0.20036568372980013,
+    "pearson_r": 0.864748369279815,
+    "r2": 0.7460131111101749,
+    "rmse": 0.2930010898457978,
+    "spearman_rho": 0.8229092708850153
+  },
+  "scope": "10-fold outer cross-validation performed only within the 80% development set"
+}

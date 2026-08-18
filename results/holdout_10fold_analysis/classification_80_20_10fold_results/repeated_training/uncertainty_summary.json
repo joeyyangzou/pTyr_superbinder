@@ -1,0 +1,8 @@
+{
+  "mean_predictive_sd": 0.035086125020489245,
+  "median_predictive_sd": 0.018258368942274377,
+  "method": "standard deviation across independently initialized final-training models",
+  "n_training_seeds": 10,
+  "predictive_sd_95th_percentile": 0.12379508670180471,
+  "scope": "deep-ensemble epistemic disagreement; not a complete predictive interval"
+}

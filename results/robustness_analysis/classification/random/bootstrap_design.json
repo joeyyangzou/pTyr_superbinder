@@ -1,6 +1,0 @@
-{
-  "replicates": 2000,
-  "interval": "2.5th and 97.5th percentiles",
-  "resampling_unit": "test sequence",
-  "stratification": "binary outcome class"
-}

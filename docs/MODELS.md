@@ -1,53 +1,43 @@
-# Model and parameter documentation
+# Models and parameters
 
-## Distributed models
+## Current trained models
 
-This release provides exactly two complete TensorFlow SavedModels:
+The repository contains one classifier and one regressor:
 
-- `models/latest_models/classification/saved_model/`: random-split seed 7,
-  selected by minimum validation loss at epoch 125.
-- `models/latest_models/regression/saved_model/`: random-split seed 5,
-  selected by minimum validation loss at epoch 158.
+- `models/latest_models/classification/saved_model/`;
+- `models/latest_models/regression/saved_model/`.
 
-Test metrics were not used during seed selection. Model manifests record the
-selection rule, encoding order, sequence length, and prediction scale.
+No alternative or historical model copies are distributed. File manifests are
+stored beside each model.
 
-Historical SavedModels, redundant model copies, and the 40 intermediate
-`best.weights.h5` files are intentionally excluded. The repeated-run training
-histories, predictions, calibration parameters, seed-level metrics, and
-aggregate results are retained under `results/robustness_analysis/`.
+## Architecture and inputs
 
-## Architecture and retraining
+Both models receive one-hot encoded eight-residue sequences with amino-acid
+order `ILVFMCAGPTSYWQNHEDKR`. The convolutional stack uses 128 filters with
+kernel sizes 1, 3, 9 and 10 and `same` padding, followed by dense layers with
+64, 32 and 8 units. Complete task-specific dropout, output, optimizer,
+early-stopping and target-scaling settings are recorded in
+`config/model_hyperparameters.json`.
 
-The classification and regression architectures are constructed by
-`src/robustness_analysis/10_robustness_analysis.py`. Fixed architecture and
-training settings are recorded in `config/model_hyperparameters.json`. No
-formal grid, random, or Bayesian hyperparameter optimization was performed.
+## Training and evaluation
 
-Running `bash run_robustness_analysis.sh` retrains seeds 1-10 for both tasks and
-split designs. Intermediate weights are generated locally in the rerun result
-tree, but are ignored by Git so that future public releases continue to carry
-only the latest two SavedModels.
+The training programs are:
 
-## Deep ensemble
+- `src/model_training/03_CNN_classification.py`;
+- `src/model_training/07_CNN_regression.py`.
 
-The deep ensemble is a prediction-level combination, not a weight average.
-For classification, each seed's sigmoid probabilities are calibrated using a
-validation-fitted Platt model and then averaged. For regression, predictions
-in original target units are averaged. The sample standard deviation across
-the ten predictions is reported as model-disagreement uncertainty.
-
-This standard deviation is an epistemic disagreement measure; it is not a
-complete predictive interval and does not include all experimental noise.
+They freeze a 20% independent test set before model development. Ten-fold
+cross-validation is performed within the 80% development set, and separate
+inner validation subsets determine the training duration. Ten independent
+training seeds, calibration, bootstrap confidence intervals and
+model-disagreement summaries are produced by the same programs.
 
 ## Prediction scales
 
-- The classification SavedModel returns a raw sigmoid probability.
-  `classification/calibration.json` contains the Platt coefficient and
-  intercept for calibrated probabilities.
-- The regression SavedModel returns a tanh-scaled target.
-  `regression/target_scaler.json` contains the training-only transformation
-  needed to recover original target units.
+- The classifier returns a sigmoid probability.
+- The regressor returns a scaled output. The prediction program automatically
+  loads `models/latest_models/regression/target_scaler.json` and reports values
+  in the original regression-target units.
 
-Thresholds must be defined on validation data for the intended raw,
-calibrated, or ensemble prediction scale.
+For a new application domain, select any classification threshold using an
+appropriate validation dataset rather than the independent test set.

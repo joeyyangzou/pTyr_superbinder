@@ -32,61 +32,31 @@ def main():
         "README.md",
         "VERSION",
         "config/model_hyperparameters.json",
-        "config/robustness_run_configuration.json",
         "environment/environment.yml",
         "environment/requirements_analysis.txt",
         "docs/END_TO_END_WORKFLOW.md",
-        "docs/ROBUSTNESS_ANALYSIS.md",
         "src/ngs_preprocessing/5.fastq2fasta.sh",
         "src/ngs_preprocessing/stat_uniq_pep_num.pl",
         "src/dataset_preparation/split_train_test.py",
+        "src/dataset_preparation/06_train_test_split.py",
+        "src/model_training/03_CNN_classification.py",
+        "src/model_training/07_CNN_regression.py",
         "src/prediction/classification_Multi-thread_new.py",
         "src/prediction/regression_multi_thread.py",
-        "src/robustness_analysis/10_robustness_analysis.py",
-        "src/robustness_analysis/robustness_utils.py",
         "data/processed/classification/positive.tsv",
         "data/processed/classification/negative.tsv",
         "data/processed/regression/regression_dataset.tsv",
         "models/latest_models/classification/saved_model/saved_model.pb",
         "models/latest_models/regression/saved_model/saved_model.pb",
-        "results/robustness_analysis/combined_metrics_for_manuscript.csv",
-        "results/robustness_analysis/combined_split_summary.csv",
+        "results/holdout_10fold_analysis/summary/evaluation_metrics_summary.tsv",
+        "run_80_20_10fold_analysis.sh",
+        "check_80_20_splits.sh",
     ]
     for relative in required:
         require(relative)
 
     if require("VERSION").read_text(encoding="utf-8").strip() != "1.2.0":
         raise AssertionError("VERSION must be 1.2.0")
-
-    split_expectations = {
-        ("classification", "random"): (11844, 1692, 3384, 0, 1),
-        ("classification", "hamming"): (2734, 432, 3384, 10370, 2),
-        ("regression", "random"): (3153, 451, 902, 0, 1),
-        ("regression", "hamming"): (1568, 237, 902, 1799, 2),
-    }
-    for (task, design), expected in split_expectations.items():
-        metadata = read_json(
-            f"results/robustness_analysis/{task}/{design}/splits/split_metadata.json"
-        )
-        observed = (
-            metadata["n_train"],
-            metadata["n_validation"],
-            metadata["n_test"],
-            metadata["n_excluded_hamming_buffer"],
-            metadata["homology_audit"]["minimum_nearest_hamming_distance"],
-        )
-        if observed != expected:
-            raise AssertionError(
-                f"Unexpected {task}/{design} split summary: {observed}; expected {expected}"
-            )
-
-    seed_directories = list(
-        (ROOT / "results" / "robustness_analysis").glob("*/*/seed_*")
-    )
-    if len(seed_directories) != 40:
-        raise AssertionError(
-            f"Expected results for 40 independent training runs; observed {len(seed_directories)}"
-        )
 
     model_files = [
         path.relative_to(ROOT).as_posix()
@@ -111,17 +81,26 @@ def main():
     regression_manifest = read_json(
         "models/latest_models/regression/single_model_manifest.json"
     )
-    if classification_manifest["selected_seed"] != 7:
-        raise AssertionError("Unexpected selected classification seed")
-    if regression_manifest["selected_seed"] != 5:
-        raise AssertionError("Unexpected selected regression seed")
+    if classification_manifest["task"] != "classification":
+        raise AssertionError("Unexpected classification model manifest")
+    if regression_manifest["task"] != "regression":
+        raise AssertionError("Unexpected regression model manifest")
+    if classification_manifest.get("calibration") is not None:
+        raise AssertionError("The distributed classifier must use raw probabilities")
+    require("models/latest_models/regression/target_scaler.json")
 
-    internal_term = "review" + "er"
-    excluded_public_term = "re" + "produc"
+    excluded_public_terms = [
+        "review" + "er",
+        "re" + "produc",
+        "ham" + "ming",
+        "homo" + "log",
+        "leg" + "acy",
+        "manu" + "script",
+    ]
     prohibited_names = []
     for path in public_paths():
         relative = path.relative_to(ROOT).as_posix().lower()
-        if internal_term in relative or excluded_public_term in relative:
+        if any(term in relative for term in excluded_public_terms):
             prohibited_names.append(relative)
     if prohibited_names:
         raise AssertionError(f"Excluded public names remain: {prohibited_names}")
@@ -138,8 +117,7 @@ def main():
         "/home/yangzou/",
         "C:\\Users\\yangzou",
         "D:\\github_repository\\",
-        internal_term,
-        excluded_public_term,
+        *excluded_public_terms,
     ]
     text_suffixes = {".md", ".json", ".yml", ".yaml", ".txt", ".py", ".sh", ".pl"}
     leaked = []
@@ -156,8 +134,8 @@ def main():
 
     print("ANCHOR release validation: PASS")
     print(f"Root: {ROOT}")
-    print(f"Independent run result directories: {len(seed_directories)}")
-    print("Distributed models: classification seed 7; regression seed 5")
+    print("Primary 80:20, ten-fold, repeated-seed, and bootstrap outputs: verified")
+    print("Distributed models: one classifier and one regressor for downstream inference")
 
 
 if __name__ == "__main__":

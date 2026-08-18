@@ -1,70 +1,47 @@
 # Data dictionary
 
-## Public processed model inputs
+## Processed inputs
 
-| File | Rows excluding header | Columns | Purpose |
+| File | Rows | Columns | Purpose |
 |---|---:|---|---|
 | `data/processed/classification/positive.tsv` | 8,460 | `sequence`, `label` | Positive classification examples (`label=1`) |
 | `data/processed/classification/negative.tsv` | 8,460 | `sequence`, `label` | Balanced negative examples (`label=0`) |
-| `data/processed/classification/classification_source_counts.tsv` | 102,746 | `Sequence`, `Ratio_R2`, `Ratio_R4`, `Diff_R4_R2`, `Flag` | Processed R2/R4 frequency-derived classification source table |
-| `data/processed/regression/regression_dataset.tsv` | 4,506 | `sequence`, `value` | Balanced regression dataset used by the robustness workflow |
-| `data/processed/regression/regression_source_values.tsv` | 102,746 | `sequence`, `value` | Processed sequence-level regression values before balancing |
-| `data/processed/regression/legacy_train.tsv` | 3,604 | no header; sequence and value | Original regression training partition |
-| `data/processed/regression/legacy_test.tsv` | 902 | no header; sequence and value | Original regression held-out partition |
+| `data/processed/classification/classification_source_counts.tsv` | 102,746 | `Sequence`, `Ratio_R2`, `Ratio_R4`, `Diff_R4_R2`, `Flag` | R2/R4 copy-frequency table used to assign classification labels |
+| `data/processed/regression/regression_dataset.tsv` | 4,506 | `sequence`, `value` | Balanced regression model input |
+| `data/processed/regression/regression_source_values.tsv` | 102,746 | `sequence`, `value` | Regression target values before balancing |
+| `data/processed/merged_sequences_all.txt` | 132,037 | sequence and sample copy counts | Combined denoised sequence/count table used by dataset preparation |
 
-`sequence` is an eight-character amino-acid string. Classification `label` is
-0 or 1. Regression `value` is the processed enrichment target used by the
-regression model.
+`sequence` is an eight-residue amino-acid string. Classification `label` is 0
+or 1. Regression `value` is the processed log-enrichment target.
 
-## Frozen robustness-analysis partitions
+## Model-analysis partitions
 
-Each split directory contains:
+| Task | Total | Development | Independent test |
+|---|---:|---:|---:|
+| Classification | 16,920 | 13,536 | 3,384 |
+| Regression | 4,506 | 3,604 | 902 |
 
-- `train.tsv`: samples used for gradient-based fitting.
-- `validation.tsv`: samples used for early stopping and classification
-  calibration.
-- `test.tsv`: frozen samples used for final evaluation only.
-- `excluded_hamming_buffer.tsv`: samples excluded because they were too close
-  to test or validation sequences; empty for random splitting.
-- `split_metadata.json`: sizes, split seed, class counts, and pairwise Hamming
-  audits.
+The 20% independent test set is fixed before model development. Ten-fold
+cross-validation and inner validation for early stopping are confined to the
+80% development set. Exact split manifests, fold assignments and predictions
+are under `results/holdout_10fold_analysis/`.
 
-### Partition sizes
+## Prediction files
 
-| Task | Design | Train | Validation | Test | Excluded buffer |
-|---|---|---:|---:|---:|---:|
-| Classification | Random | 11,844 | 1,692 | 3,384 | 0 |
-| Classification | Hamming | 2,734 | 432 | 3,384 | 10,370 |
-| Regression | Random | 3,153 | 451 | 902 | 0 |
-| Regression | Hamming | 1,568 | 237 | 902 | 1,799 |
+The prediction programs accept a text file with one eight-residue sequence per
+line. If a row contains additional tab-separated columns, only the first column
+is used.
 
-The Hamming partitions have minimum pairwise inter-partition distance 2 and no
-test sequence with a distance-0 or distance-1 training neighbor.
+- classification output: sequence and classifier probability;
+- regression output: sequence and predicted enrichment score in the original
+  target units.
 
-## Supplied predictions and derived results
+Large exhaustive sequence-space prediction tables are derived outputs and are
+not stored in the repository; they can be regenerated with the supplied models
+and prediction programs.
 
-Per-seed test predictions are stored below each `seed_*` directory. Ensemble
-files contain the test label/value, prediction mean, model-disagreement SD, and
-for regression, residual and absolute error.
+## Raw sequencing reads
 
-Large exhaustive full-sequence-space prediction tables from the original local
-analysis are not included in this GitHub package:
-
-| Local derived file | Approximate size | Reason omitted |
-|---|---:|---|
-| `final_predict.txt` | 477 MB | Fully derived and regenerable; unsuitable for standard GitHub storage |
-| `predict.txt` | 247 MB | Fully derived and regenerable |
-| `reduced_sequence_prediction.txt` | 67 MB | Fully derived intermediate |
-
-These tables are not training inputs and are not required to repeat any
-reported test metric. They can be regenerated using the published prediction
-scripts and trained models. If the journal requires direct hosting of these
-large derived tables, deposit them in Zenodo/Figshare or use Git LFS and add the
-permanent DOI to the release description.
-
-## Raw reads
-
-Raw FASTQ files are not duplicated in this repository. The scripts needed to
-produce sequence-level processed tables are supplied in
-`src/ngs_preprocessing/`. The final manuscript should cite the permanent raw
-read archive accession if one is available.
+Raw FASTQ files are available from the NCBI Sequence Read Archive under
+accession PRJNA664254. The processing programs required to create the public
+sequence-level tables are under `src/ngs_preprocessing/`.
