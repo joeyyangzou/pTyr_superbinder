@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Create the manuscript-described systematic 4:1 regression split.
+"""Create the systematic 4:1 regression split.
 
 Rows are first sorted by the regression target (log10 ratio) in descending
 order. Consecutive blocks of five are then formed. One row from every block is
-assigned to the independent test set using the original fixed within-block
-seed (1), and the remaining rows form the development/training set. A final
-incomplete block contributes one test row, matching the historical workflow.
+assigned to the independent test set using fixed within-block seed 1, and the
+remaining rows form the development set. A final incomplete block contributes
+one test row.
 """
 
 import argparse
@@ -41,7 +41,7 @@ def parse_args():
 def main():
     args = parse_args()
     if args.block_size != 5:
-        raise ValueError("The manuscript-described 4:1 split requires --block-size 5")
+        raise ValueError("The 4:1 split requires --block-size 5")
 
     data = pd.read_csv(args.input, sep="\t")
     if not {"sequence", "value"}.issubset(data.columns):
@@ -67,9 +67,8 @@ def main():
             block_development = block.iloc[0:0].copy()
             block_test = block.copy()
         else:
-            # This matches train_test_split(..., test_size=1,
-            # random_state=1) from the historical script. Resetting the fixed
-            # RNG in every full five-row block selects within-block index 2.
+            # Resetting the fixed RNG in every full five-row block makes the
+            # within-block selection deterministic.
             selected_position = int(np.random.RandomState(args.within_block_seed).permutation(len(block))[0])
             selected_index = block.index[selected_position]
             block_test = block.loc[[selected_index]].copy()

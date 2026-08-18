@@ -1,6 +1,6 @@
 {
   "purpose": "One classifier and one regressor for downstream ANCHOR inference.",
-  "artifact_origin": "pTyr_antibody-analog/model (copied byte-for-byte)",
+  "artifact_origin": "ANCHOR v1.2.0 trained-model archive",
   "tasks": {
     "classification": {
       "task": "classification",

@@ -29,7 +29,7 @@ printf 'Step 1/4: classification 80:20 holdout, 10-fold CV, and repeated seeds\n
   --bootstrap-replicates 2000 \
   2>&1 | tee "${OUTPUT_ROOT}/logs/classification.log"
 
-printf 'Step 2/4: manuscript-defined systematic regression 80:20 split\n'
+printf 'Step 2/4: systematic regression 80:20 split\n'
 "${PYTHON_BIN}" "${REPO_ROOT}/src/dataset_preparation/06_train_test_split.py" \
   --input "${REPO_ROOT}/data/processed/regression/regression_dataset.tsv" \
   --development-output "${SPLIT_WORK}/train_set.tsv" \

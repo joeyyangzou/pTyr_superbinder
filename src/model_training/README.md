@@ -1,6 +1,6 @@
 # CNN model training
 
-The two training programs implement the manuscript's random-split baseline:
+The two training programs implement the fixed 80:20 analysis:
 
 - `03_CNN_classification.py`: binary classification;
 - `07_CNN_regression.py`: regression.

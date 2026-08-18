@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a deterministic 80/20 train/test split for the original workflow."""
+"""Create a deterministic random 80/20 train/test split."""
 
 import argparse
 

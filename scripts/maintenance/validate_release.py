@@ -89,12 +89,18 @@ def main():
         raise AssertionError("The distributed classifier must use raw probabilities")
     require("models/latest_models/regression/target_scaler.json")
 
-    internal_term = "review" + "er"
-    excluded_public_term = "re" + "produc"
+    excluded_public_terms = [
+        "review" + "er",
+        "re" + "produc",
+        "ham" + "ming",
+        "homo" + "log",
+        "leg" + "acy",
+        "manu" + "script",
+    ]
     prohibited_names = []
     for path in public_paths():
         relative = path.relative_to(ROOT).as_posix().lower()
-        if internal_term in relative or excluded_public_term in relative:
+        if any(term in relative for term in excluded_public_terms):
             prohibited_names.append(relative)
     if prohibited_names:
         raise AssertionError(f"Excluded public names remain: {prohibited_names}")
@@ -111,8 +117,7 @@ def main():
         "/home/yangzou/",
         "C:\\Users\\yangzou",
         "D:\\github_repository\\",
-        internal_term,
-        excluded_public_term,
+        *excluded_public_terms,
     ]
     text_suffixes = {".md", ".json", ".yml", ".yaml", ".txt", ".py", ".sh", ".pl"}
     leaked = []

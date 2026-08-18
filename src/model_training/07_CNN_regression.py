@@ -411,7 +411,7 @@ def main():
     if split_manifest_path.is_file():
         split_manifest = json.loads(split_manifest_path.read_text(encoding="utf-8-sig"))
         if split_manifest.get("design") != "log(ratio)-ordered systematic 4:1 split":
-            raise ValueError("The split manifest does not describe the manuscript regression split")
+            raise ValueError("The split manifest does not describe the expected regression split")
         if int(split_manifest.get("development_rows", -1)) != len(development):
             raise ValueError("Development row count does not match the split manifest")
         if int(split_manifest.get("independent_test_rows", -1)) != len(test):

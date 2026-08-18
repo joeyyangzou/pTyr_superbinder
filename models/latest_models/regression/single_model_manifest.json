@@ -1,7 +1,7 @@
 {
   "task": "regression",
   "artifact_role": "downstream inference model",
-  "model_origin": "pTyr_antibody-analog/model/CNN_regression_model (copied byte-for-byte)",
+  "model_origin": "ANCHOR v1.2.0 regression model",
   "sequence_length": 8,
   "amino_acid_order": "ILVFMCAGPTSYWQNHEDKR",
   "saved_model": "models/latest_models/regression/saved_model",

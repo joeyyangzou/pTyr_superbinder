@@ -9,8 +9,8 @@ regression model inputs.
 | `02_classification_positive_negative.pl` | Create balanced positive and negative classification files |
 | `04_regression_preprocess.py` | Calculate log10 enrichment targets |
 | `05_split_pos_neg_regression.py` | Balance positive and negative regression values |
-| `split_train_test.py` | Create a deterministic original-workflow 80/20 split |
-| `06_train_test_split.py` | Historical regression split implementation |
+| `split_train_test.py` | Create a generic deterministic random 80/20 split |
+| `06_train_test_split.py` | Create the target-ordered systematic regression 80/20 split |
 
 The maintained analysis creates a fixed 80% development set and a 20%
 independent test set. Inner validation subsets are created only within the

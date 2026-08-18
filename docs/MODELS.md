@@ -1,64 +1,43 @@
-# Model and parameter documentation
+# Models and parameters
 
-## Distributed inference models
+## Current trained models
 
-This release provides exactly two complete TensorFlow SavedModels:
+The repository contains one classifier and one regressor:
 
-- `models/latest_models/classification/saved_model/`: classifier copied
-  byte-for-byte from `pTyr_antibody-analog/model/CNN_classification`;
-- `models/latest_models/regression/saved_model/`: regressor copied
-  byte-for-byte from `pTyr_antibody-analog/model/CNN_regression_model`.
+- `models/latest_models/classification/saved_model/`;
+- `models/latest_models/regression/saved_model/`.
 
-The model manifests record the encoding order, sequence length, architecture
-source, and prediction scale. Historical SavedModels, redundant model copies,
-and intermediate seed weights are intentionally excluded.
+No alternative or historical model copies are distributed. File manifests are
+stored beside each model.
 
-These two artifacts are supplied for downstream sequence screening and
-ranking. They are not presented as the models from which the supplied
-repeated-seed evaluation summaries were calculated. The
-corresponding predictions, histories, seed-level metrics, calibration outputs,
-and aggregate statistics remain under `results/holdout_10fold_analysis/`.
+## Architecture and inputs
 
-## Architecture and retraining
+Both models receive one-hot encoded eight-residue sequences with amino-acid
+order `ILVFMCAGPTSYWQNHEDKR`. The convolutional stack uses 128 filters with
+kernel sizes 1, 3, 9 and 10 and `same` padding, followed by dense layers with
+64, 32 and 8 units. Complete task-specific dropout, output, optimizer,
+early-stopping and target-scaling settings are recorded in
+`config/model_hyperparameters.json`.
 
-The 80:20 holdout plus 10-fold cross-validation training programs are:
+## Training and evaluation
+
+The training programs are:
 
 - `src/model_training/03_CNN_classification.py`;
 - `src/model_training/07_CNN_regression.py`.
 
-They freeze the independent 20% test set before cross-validation, perform the
-outer 10-fold analysis only within the 80% development set, and use inner
-validation subsets for early stopping. The final SavedModel is refitted on the
-complete development set and the test set is evaluated once.
-
-Repeated-seed training, calibration, confidence intervals, and uncertainty
-summaries are implemented directly in the two model-training programs. Fixed
-architecture and training settings are recorded in
-`config/model_hyperparameters.json`. The reported parameter combination was
-selected by a development-data grid search.
-
-## Deep ensemble used in the repeated-seed analysis
-
-The deep ensemble is a prediction-level combination of the ten independently
-seeded models trained on the same fixed 80% development set; it is not a weight
-average. For classification, each seed's probabilities are calibrated using
-pooled out-of-fold predictions from the development set and then averaged. For
-regression, predictions in original target units are averaged. The sample
-standard deviation across the ten predictions is reported as model-disagreement
-uncertainty. The independent 20% test set is used only for final evaluation.
-
-This standard deviation is an epistemic disagreement measure; it is not a
-complete predictive interval and does not include all experimental noise.
+They freeze a 20% independent test set before model development. Ten-fold
+cross-validation is performed within the 80% development set, and separate
+inner validation subsets determine the training duration. Ten independent
+training seeds, calibration, bootstrap confidence intervals and
+model-disagreement summaries are produced by the same programs.
 
 ## Prediction scales
 
-- The distributed classification SavedModel returns a raw sigmoid probability.
-  No post-hoc calibration file is distributed for this inference model.
-- The distributed regression SavedModel returns a tanh-scaled target.
-  `regression/target_scaler.json` contains the transformation needed to recover
-  original target units; it was reconstructed from the 4,506 values in the
-  distributed processed regression dataset, matching the original inference
-  workflow.
+- The classifier returns a sigmoid probability.
+- The regressor returns a scaled output. The prediction program automatically
+  loads `models/latest_models/regression/target_scaler.json` and reports values
+  in the original regression-target units.
 
-Thresholds for new applications should be selected on validation data from the
-intended application domain.
+For a new application domain, select any classification threshold using an
+appropriate validation dataset rather than the independent test set.

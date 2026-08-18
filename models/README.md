@@ -1,20 +1,17 @@
 # Trained models
 
-`latest_models/` contains the only two trained inference artifacts distributed
-in this release:
+`latest_models/` contains the two current TensorFlow SavedModels used by the
+prediction programs:
 
-- `classification/saved_model/`: classifier returning a raw sigmoid
-  probability. No post-hoc calibration file is distributed for this model.
-- `regression/saved_model/`: regressor returning a tanh-scaled target, together
-  with `target_scaler.json` for conversion to the original target units.
+```text
+latest_models/classification/saved_model/
+latest_models/regression/saved_model/
+```
 
-Both are complete TensorFlow SavedModels copied byte-for-byte from the
-`pTyr_antibody-analog/model` archive (`CNN_classification` and
-`CNN_regression_model`). Historical SavedModels and intermediate seed weights
-are not included. The models used for the repeated-seed evaluation remain
-represented by their predictions, histories, and metrics in
-`../results/holdout_10fold_analysis/`; those evaluation statistics must not be
-attributed to the two downstream inference exports in this directory.
+The classification model returns a sigmoid probability. The regression model
+is accompanied by `target_scaler.json`, which is loaded automatically to
+convert predictions back to the original target scale.
 
-See [`../docs/MODELS.md`](../docs/MODELS.md) for architecture, prediction-scale,
-and evaluation details.
+Model architecture and training parameters are recorded in
+`../config/model_hyperparameters.json`. Model-specific file manifests are kept
+next to each SavedModel.

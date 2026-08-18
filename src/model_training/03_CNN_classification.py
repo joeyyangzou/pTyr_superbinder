@@ -389,7 +389,7 @@ def plot_reliability(y_true, probability, output_path, n_bins=10, raw_probabilit
 def main():
     args = parse_args()
     if args.folds != 10:
-        print("Warning: the manuscript statement specifically requires --folds 10.")
+        print("Warning: the supplied reference workflow uses --folds 10.")
     output_dir = Path(args.output_dir)
     split_dir = output_dir / "splits"
     cv_dir = output_dir / "cross_validation"

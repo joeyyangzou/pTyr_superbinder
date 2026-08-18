@@ -266,7 +266,7 @@ cp regression_dataset.txt \
   "${REPO_ROOT}/data/processed/regression/regression_dataset.tsv"
 ```
 
-The manuscript-aligned 80:20/10-fold programs are
+The maintained 80:20/10-fold programs are
 `src/model_training/03_CNN_classification.py` and
 `src/model_training/07_CNN_regression.py`. They freeze the independent 20%
 test set first, run 10-fold cross-validation only within the 80% development
