@@ -300,8 +300,10 @@ nohup python src/prediction/classification_Multi-thread_new.py \
 ```
 
 The threshold is applied to the raw sigmoid probability, matching the
-historical prediction scale. No post-hoc calibration file is distributed for
-this inference model.
+historical prediction scale. For calibrated probabilities, add
+`--apply_platt`; this uses the supplied development-only parameters in
+`models/latest_models/classification/platt_calibration.json`, and the threshold
+is then applied to the calibrated probability.
 
 ### 23. Extract classification-passing sequences
 

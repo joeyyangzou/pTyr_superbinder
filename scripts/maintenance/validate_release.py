@@ -47,6 +47,7 @@ def main():
         "data/processed/classification/negative.tsv",
         "data/processed/regression/regression_dataset.tsv",
         "models/latest_models/classification/saved_model/saved_model.pb",
+        "models/latest_models/classification/platt_calibration.json",
         "models/latest_models/regression/saved_model/saved_model.pb",
         "results/holdout_10fold_analysis/summary/evaluation_metrics_summary.tsv",
         "run_80_20_10fold_analysis.sh",
@@ -85,8 +86,20 @@ def main():
         raise AssertionError("Unexpected classification model manifest")
     if regression_manifest["task"] != "regression":
         raise AssertionError("Unexpected regression model manifest")
-    if classification_manifest.get("calibration") is not None:
-        raise AssertionError("The distributed classifier must use raw probabilities")
+    if classification_manifest.get("selected_training_seed") != 5:
+        raise AssertionError("The distributed classifier must be the selected seed-5 model")
+    if classification_manifest.get("selected_epoch") != 132:
+        raise AssertionError("The distributed classifier must use the selected 132 epochs")
+    calibration = classification_manifest.get("calibration")
+    if calibration != "models/latest_models/classification/platt_calibration.json":
+        raise AssertionError("Unexpected classification calibration manifest")
+    calibration_parameters = read_json(calibration)
+    if calibration_parameters.get("fitted_on") != "pooled OOF predictions from the 80% development set":
+        raise AssertionError("Classification calibration must be development-only")
+    if regression_manifest.get("selected_training_seed") != 8:
+        raise AssertionError("The distributed regressor must be the selected seed-8 model")
+    if regression_manifest.get("selected_epoch") != 199:
+        raise AssertionError("The distributed regressor must use the selected 199 epochs")
     require("models/latest_models/regression/target_scaler.json")
 
     excluded_public_terms = [

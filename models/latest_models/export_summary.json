@@ -1,25 +1,30 @@
 {
-  "purpose": "One classifier and one regressor for downstream ANCHOR inference.",
-  "artifact_origin": "ANCHOR v1.2.0 trained-model archive",
+  "purpose": "The primary classifier and regressor used for the reported ANCHOR independent-test evaluations and downstream inference.",
+  "artifact_origin": "ANCHOR v1.2.0 primary-model archive",
   "tasks": {
     "classification": {
       "task": "classification",
       "saved_model": "models/latest_models/classification/saved_model",
       "architecture_source": "src/model_training/03_CNN_classification.py",
+      "selected_training_seed": 5,
+      "selected_epoch": 132,
       "sequence_length": 8,
       "amino_acid_order": "ILVFMCAGPTSYWQNHEDKR",
-      "prediction_scope": "raw sigmoid probability",
-      "calibration": null
+      "prediction_scope": "raw sigmoid probability; optional Platt-calibrated probability",
+      "calibration": "models/latest_models/classification/platt_calibration.json",
+      "reported_primary_metrics": "results/holdout_10fold_analysis/classification_80_20_10fold_results/final_model/independent_test_summary.json"
     },
     "regression": {
       "task": "regression",
       "saved_model": "models/latest_models/regression/saved_model",
       "architecture_source": "src/model_training/07_CNN_regression.py",
+      "selected_training_seed": 8,
+      "selected_epoch": 199,
       "sequence_length": 8,
       "amino_acid_order": "ILVFMCAGPTSYWQNHEDKR",
       "prediction_scope": "tanh-scaled target; invert with target_scaler.json",
-      "target_scaler": "models/latest_models/regression/target_scaler.json"
+      "target_scaler": "models/latest_models/regression/target_scaler.json",
+      "reported_primary_metrics": "results/holdout_10fold_analysis/regression_80_20_10fold_results/independent_test_summary.json"
     }
-  },
-  "evaluation_note": "Reported repeated-run and 80:20/10-fold statistics are derived from their archived analysis outputs, not from these two inference exports."
+  }
 }

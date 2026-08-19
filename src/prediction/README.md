@@ -13,8 +13,14 @@ python src/prediction/classification_Multi-thread_new.py \
 ```
 
 The classifier returns the raw sigmoid probability used by the historical
-screening workflow. No post-hoc calibration file is distributed for this
-inference model. Use `--model` only when overriding the public default.
+screening workflow. To return probabilities calibrated using pooled out-of-fold
+predictions from the 80% development set, add `--apply_platt`; the program then
+loads `models/latest_models/classification/platt_calibration.json` by default.
+The threshold is applied to whichever probability scale is selected. Use
+`--model` or `--calibration` only when overriding the public defaults.
+The calibrated F1-selected development-set cutoff reported in the model
+analysis is 0.510; the historical full-library screening command above retains
+the original raw-probability cutoff of 0.99.
 
 ## Regression ranking
 

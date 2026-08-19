@@ -175,8 +175,12 @@ python src/prediction/regression_multi_thread.py \
 ```
 
 Both prediction programs load the models under `models/latest_models/` by
-default. See [`src/prediction/README.md`](src/prediction/README.md) for input
-and output details.
+default. The classifier is the selected seed-5/132-epoch primary model and the
+regressor is the selected seed-8/199-epoch primary model. Development-only
+Platt parameters are supplied for optional calibrated classification
+probabilities (`--apply_platt`). See
+[`src/prediction/README.md`](src/prediction/README.md) for input and output
+details.
 
 ## Supplied model-analysis results
 

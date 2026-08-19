@@ -1,12 +1,15 @@
 {
   "task": "regression",
-  "artifact_role": "downstream inference model",
-  "model_origin": "ANCHOR v1.2.0 regression model",
+  "artifact_role": "primary regression model used for the reported independent-test evaluation",
+  "model_origin": "ANCHOR v1.2.0 primary regression model",
+  "selected_training_seed": 8,
+  "selected_epoch": 199,
+  "selection_rule": "minimum inner-validation loss; the independent test set was not used for model selection",
   "sequence_length": 8,
   "amino_acid_order": "ILVFMCAGPTSYWQNHEDKR",
   "saved_model": "models/latest_models/regression/saved_model",
   "architecture_source": "src/model_training/07_CNN_regression.py",
   "prediction_scope": "tanh-scaled target; use target_scaler.json to recover original target units",
   "target_scaler": "models/latest_models/regression/target_scaler.json",
-  "evaluation_note": "This inference artifact is separate from the seed-level models used to calculate the supplied robustness statistics."
+  "reported_primary_metrics": "results/holdout_10fold_analysis/regression_80_20_10fold_results/independent_test_summary.json"
 }

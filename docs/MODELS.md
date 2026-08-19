@@ -7,6 +7,11 @@ The repository contains one classifier and one regressor:
 - `models/latest_models/classification/saved_model/`;
 - `models/latest_models/regression/saved_model/`.
 
+These are the selected primary models used to obtain the reported independent-
+test results: classification seed 5 trained for 132 epochs and regression seed
+8 trained for 199 epochs. Model selection used inner-development validation
+loss and did not use the independent test sets.
+
 No alternative or historical model copies are distributed. File manifests are
 stored beside each model.
 
@@ -34,7 +39,11 @@ model-disagreement summaries are produced by the same programs.
 
 ## Prediction scales
 
-- The classifier returns a sigmoid probability.
+- The classifier returns a raw sigmoid probability. Development-only Platt
+  parameters are supplied in
+  `models/latest_models/classification/platt_calibration.json`. The prediction
+  program applies them when `--apply_platt` is specified. The accompanying
+  development-selected calibrated cutoff is 0.510.
 - The regressor returns a scaled output. The prediction program automatically
   loads `models/latest_models/regression/target_scaler.json` and reports values
   in the original regression-target units.

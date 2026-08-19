@@ -1,12 +1,15 @@
 {
   "task": "classification",
-  "artifact_role": "downstream inference model",
-  "model_origin": "ANCHOR v1.2.0 classification model",
+  "artifact_role": "primary classification model used for the reported independent-test evaluation",
+  "model_origin": "ANCHOR v1.2.0 primary classification model",
+  "selected_training_seed": 5,
+  "selected_epoch": 132,
+  "selection_rule": "minimum inner-validation loss; the independent test set was not used for model selection",
   "sequence_length": 8,
   "amino_acid_order": "ILVFMCAGPTSYWQNHEDKR",
   "saved_model": "models/latest_models/classification/saved_model",
   "architecture_source": "src/model_training/03_CNN_classification.py",
-  "prediction_scope": "raw sigmoid probability; no post-hoc calibration is distributed for this model",
-  "calibration": null,
-  "evaluation_note": "This inference artifact is separate from the seed-level models used to calculate the supplied robustness statistics."
+  "prediction_scope": "raw sigmoid probability; use the supplied Platt parameters for calibrated probabilities",
+  "calibration": "models/latest_models/classification/platt_calibration.json",
+  "reported_primary_metrics": "results/holdout_10fold_analysis/classification_80_20_10fold_results/final_model/independent_test_summary.json"
 }
