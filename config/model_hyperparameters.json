@@ -48,6 +48,13 @@
     "bootstrap_replicates": 2000,
     "classification_bootstrap_strata": "outcome class",
     "regression_bootstrap_strata": "observed-target quantile strata",
-    "primary_uncertainty": "standard deviation across independently trained seed models"
+    "primary_uncertainty": "standard deviation across independently trained seed models",
+    "hamming_buffer_sensitivity": {
+      "fixed_test_set": "primary classification independent test set",
+      "minimum_development_test_hamming": 2,
+      "excluded_development_distance": "0 or 1",
+      "training_seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      "bootstrap_replicates": 2000
+    }
   }
 }

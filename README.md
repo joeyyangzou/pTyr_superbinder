@@ -22,6 +22,9 @@ denoising and classification/regression dataset construction
 80% development + 20% independent-test CNN analysis
         |
         v
+optional fixed-test Hamming-buffer sensitivity audit
+        |
+        v
 classification screening of new sequences
         |
         v
@@ -42,6 +45,7 @@ The complete commands from FASTQ input to final prediction are documented in
 | `data/processed/` | Sequence-level inputs used by the model programs |
 | `models/latest_models/` | Current classifier, regressor and regression target scaler |
 | `results/holdout_10fold_analysis/` | Fixed splits, predictions, metrics, confidence intervals and plots |
+| `results/hamming_buffer_sensitivity/` | Fixed-test Hamming-buffer partitions, predictions, metrics and Supplementary Figure S6/Table S6 |
 | `config/` | Model architecture and analysis parameters |
 | `environment/` | Conda and Python dependency specifications |
 
@@ -152,6 +156,21 @@ intervals and summaries from ten independent training seeds.
 Detailed options are described in
 [`src/model_training/README.md`](src/model_training/README.md).
 
+### Fixed-test Hamming-buffer sensitivity analysis
+
+To assess extrapolation beyond one-residue development-test neighbors while
+retaining the exact primary independent test set, run:
+
+```bash
+bash run_fixed_test_hamming_buffer.sh
+```
+
+This excludes every non-test sequence at Hamming distance 0 or 1 from any test
+sequence, enforces a minimum development-test distance of 2, and then repeats
+the development-only 10-fold/ten-seed protocol. Published outputs are under
+`results/hamming_buffer_sensitivity/`; full design and run instructions are in
+[`docs/FIXED_TEST_HAMMING_BUFFER.md`](docs/FIXED_TEST_HAMMING_BUFFER.md).
+
 ## 5. Predict new sequences
 
 Prepare a text file containing one eight-residue amino-acid sequence per line.
@@ -190,13 +209,16 @@ details.
 | Classification | AUPRC | 0.979 (0.975-0.982) |
 | Regression | Pearson's r | 0.870 (0.849-0.889) |
 | Regression | Spearman's rho | 0.825 (0.808-0.842) |
+| Hamming-buffer classification ensemble | AUROC | 0.950 (0.942-0.957) |
+| Hamming-buffer classification ensemble | AUPRC | 0.963 (0.957-0.968) |
 
-All supplied metrics, predictions, split assignments, training histories and
-plots are under `results/holdout_10fold_analysis/`.
+Primary metrics, predictions, split assignments, training histories and plots
+are under `results/holdout_10fold_analysis/`. The fixed-test Hamming-buffer
+sensitivity outputs are under `results/hamming_buffer_sensitivity/`.
 
 ## Version and file integrity
 
-This workflow is version `v1.2.0`.
+This workflow is version `v1.2.1`.
 
 ```bash
 python scripts/maintenance/validate_release.py

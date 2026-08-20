@@ -1,0 +1,34 @@
+{
+  "actual_development_fraction": 0.5049736688121709,
+  "actual_test_fraction": 0.4950263311878291,
+  "design": "Frozen primary 20% independent test plus a Hamming-buffered development pool; all non-test sequences within the requested Hamming distance were excluded",
+  "hamming_audit": {
+    "candidate_nearest_test_hamming_counts_before_filtering": {
+      "1": 10084,
+      "2": 2751,
+      "3": 570,
+      "4": 120,
+      "5": 11
+    },
+    "exact_sequence_overlap": 0,
+    "minimum_development_test_hamming": 2,
+    "nearest_development_hamming_counts_for_test": {
+      "2": 3177,
+      "3": 188,
+      "4": 19
+    },
+    "test_sequences_with_development_neighbor_hamming_le_1": 0
+  },
+  "inner_validation_fraction_of_outer_training": 0.1,
+  "n_development": 3452,
+  "n_independent_test": 3384,
+  "n_total": 6836,
+  "outer_fold_used_for_early_stopping": false,
+  "outer_folds": 10,
+  "predefined_split": true,
+  "requested_test_fraction": 0.2,
+  "source_split_manifest": "results/hamming_buffer_sensitivity/buffer_partitions/split_manifest.json",
+  "split_mode": "fixed_test_hamming_buffer",
+  "split_seed": 2026,
+  "test_used_for_early_stopping": false
+}

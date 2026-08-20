@@ -1,0 +1,4 @@
+partition	n	positive	negative
+development_hamming_buffer	3452	1535	1917
+independent_test_fixed	3384	1692	1692
+excluded_within_buffer	10084	5233	4851

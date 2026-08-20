@@ -280,6 +280,19 @@ bash run_80_20_10fold_analysis.sh
 The public inference artifacts remain one classifier and one regressor under
 `models/latest_models/`. Intermediate seed weights are not distributed.
 
+### Optional sequence-similarity sensitivity analysis
+
+The fixed-test Hamming-buffer analysis retains the primary classification test
+set, excludes every non-test sequence at Hamming distance 0 or 1 from any test
+sequence, and repeats the development-only ten-fold/ten-seed protocol:
+
+```bash
+cd "${REPO_ROOT}"
+bash run_fixed_test_hamming_buffer.sh
+```
+
+See `docs/FIXED_TEST_HAMMING_BUFFER.md` for the complete design and outputs.
+
 ## D. Full-sequence prediction
 
 The prediction programs default to the two SavedModels under
