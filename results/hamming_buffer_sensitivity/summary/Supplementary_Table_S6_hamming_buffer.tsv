@@ -1,0 +1,3 @@
+analysis	n_development	n_independent_test	minimum_development_test_Hamming	n_excluded_by_Hamming_buffer	AUROC_95CI	AUPRC_95CI	Accuracy_95CI	F1_95CI	MCC_95CI	Brier_95CI	ECE_95CI
+Primary random 80:20	13536	3384	1	0	0.976 (0.971-0.980)	0.980 (0.977-0.984)	0.933 (0.924-0.941)	0.931 (0.922-0.939)	0.867 (0.851-0.883)	0.053 (0.048-0.059)	0.018 (0.014-0.026)
+Fixed-test Hamming buffer	3452	3384	2	10084	0.950 (0.942-0.957)	0.963 (0.957-0.968)	0.900 (0.889-0.910)	0.901 (0.891-0.911)	0.799 (0.779-0.820)	0.082 (0.076-0.089)	0.074 (0.067-0.081)

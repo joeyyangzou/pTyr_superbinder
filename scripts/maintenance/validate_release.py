@@ -40,6 +40,7 @@ def main():
         "src/dataset_preparation/split_train_test.py",
         "src/dataset_preparation/06_train_test_split.py",
         "src/model_training/03_CNN_classification.py",
+        "src/model_training/14_make_fixed_test_hamming_buffer.py",
         "src/model_training/07_CNN_regression.py",
         "src/prediction/classification_Multi-thread_new.py",
         "src/prediction/regression_multi_thread.py",
@@ -50,14 +51,20 @@ def main():
         "models/latest_models/classification/platt_calibration.json",
         "models/latest_models/regression/saved_model/saved_model.pb",
         "results/holdout_10fold_analysis/summary/evaluation_metrics_summary.tsv",
+        "results/hamming_buffer_sensitivity/buffer_partitions/split_manifest.json",
+        "results/hamming_buffer_sensitivity/repeated_training/ensemble_summary.json",
+        "results/hamming_buffer_sensitivity/summary/Supplementary_Table_S6_hamming_buffer.tsv",
+        "results/hamming_buffer_sensitivity/summary/Supplementary_Figure_S6_hamming_buffer.png",
+        "docs/FIXED_TEST_HAMMING_BUFFER.md",
         "run_80_20_10fold_analysis.sh",
+        "run_fixed_test_hamming_buffer.sh",
         "check_80_20_splits.sh",
     ]
     for relative in required:
         require(relative)
 
-    if require("VERSION").read_text(encoding="utf-8").strip() != "1.2.0":
-        raise AssertionError("VERSION must be 1.2.0")
+    if require("VERSION").read_text(encoding="utf-8").strip() != "1.2.1":
+        raise AssertionError("VERSION must be 1.2.1")
 
     model_files = [
         path.relative_to(ROOT).as_posix()
@@ -102,10 +109,34 @@ def main():
         raise AssertionError("The distributed regressor must use the selected 199 epochs")
     require("models/latest_models/regression/target_scaler.json")
 
+    hamming_manifest = read_json(
+        "results/hamming_buffer_sensitivity/buffer_partitions/split_manifest.json"
+    )
+    if hamming_manifest.get("split_mode") != "fixed_test_hamming_buffer":
+        raise AssertionError("Unexpected Hamming-buffer split mode")
+    if hamming_manifest.get("development_rows") != 3452:
+        raise AssertionError("Unexpected Hamming-buffer development-set size")
+    if hamming_manifest.get("independent_test_rows") != 3384:
+        raise AssertionError("Unexpected fixed independent-test size")
+    hamming_audit = hamming_manifest.get("hamming_audit", {})
+    if hamming_audit.get("minimum_development_test_hamming") != 2:
+        raise AssertionError("Hamming-buffer minimum distance must be 2")
+    if hamming_audit.get("test_sequences_with_development_neighbor_hamming_le_1") != 0:
+        raise AssertionError("A distance-0/1 development-test pair remains")
+    if hamming_manifest.get("test_resampled") is not False:
+        raise AssertionError("The Hamming-buffer test set must remain frozen")
+
+    hamming_summary = read_json(
+        "results/hamming_buffer_sensitivity/repeated_training/ensemble_summary.json"
+    )
+    if hamming_summary.get("n_training_seeds") != 10:
+        raise AssertionError("The Hamming-buffer ensemble must contain ten seeds")
+    if round(hamming_summary["metrics"]["AUROC"], 3) != 0.950:
+        raise AssertionError("Unexpected Hamming-buffer AUROC")
+
     excluded_public_terms = [
         "review" + "er",
         "re" + "produc",
-        "ham" + "ming",
         "homo" + "log",
         "leg" + "acy",
         "manu" + "script",
@@ -148,6 +179,7 @@ def main():
     print("ANCHOR release validation: PASS")
     print(f"Root: {ROOT}")
     print("Primary 80:20, ten-fold, repeated-seed, and bootstrap outputs: verified")
+    print("Fixed-test Hamming-buffer sensitivity outputs: verified")
     print("Distributed models: one classifier and one regressor for downstream inference")
 
 

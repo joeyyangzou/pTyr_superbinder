@@ -1,0 +1,49 @@
+{
+  "class_counts": {
+    "development": {
+      "negative": 1917,
+      "positive": 1535
+    },
+    "excluded": {
+      "negative": 4851,
+      "positive": 5233
+    },
+    "full": {
+      "negative": 8460,
+      "positive": 8460
+    },
+    "independent_test": {
+      "negative": 1692,
+      "positive": 1692
+    }
+  },
+  "design": "Frozen primary 20% independent test plus a Hamming-buffered development pool; all non-test sequences within the requested Hamming distance were excluded",
+  "development_rows": 3452,
+  "excluded_rows": 10084,
+  "fixed_test_sha256_sequence_label": "d16c08be3f2ed9b3cd89667374fe9b6fb904c39dd11be6f38fc56acaebe69206",
+  "fixed_test_source": "results/holdout_10fold_analysis/classification_80_20_10fold_results/splits/independent_test_20.tsv",
+  "hamming_audit": {
+    "candidate_nearest_test_hamming_counts_before_filtering": {
+      "1": 10084,
+      "2": 2751,
+      "3": 570,
+      "4": 120,
+      "5": 11
+    },
+    "exact_sequence_overlap": 0,
+    "minimum_development_test_hamming": 2,
+    "nearest_development_hamming_counts_for_test": {
+      "2": 3177,
+      "3": 188,
+      "4": 19
+    },
+    "test_sequences_with_development_neighbor_hamming_le_1": 0
+  },
+  "independent_test_rows": 3384,
+  "minimum_requested_development_test_hamming": 2,
+  "source_total_rows": 16920,
+  "split_mode": "fixed_test_hamming_buffer",
+  "test_resampled": false,
+  "test_used_for_calibration": false,
+  "test_used_for_early_stopping": false
+}

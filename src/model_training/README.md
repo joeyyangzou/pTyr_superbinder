@@ -54,3 +54,14 @@ than assumed from an earlier run.
 From the repository root, `bash check_80_20_splits.sh` checks both task splits
 without loading TensorFlow. `bash run_80_20_10fold_analysis.sh` runs the full
 classification and regression analysis and then creates a combined summary.
+
+## Fixed-test Hamming-buffer sensitivity analysis
+
+`14_make_fixed_test_hamming_buffer.py` retains the exact primary
+classification test set and removes all remaining library sequences at Hamming
+distance 0 or 1 from any test sequence. The retained development set therefore
+has a minimum test distance of 2. `bash run_fixed_test_hamming_buffer.sh` then
+applies the same development-only ten-fold/ten-seed evaluation protocol and
+generates the comparison with the primary random split. See
+[`../../docs/FIXED_TEST_HAMMING_BUFFER.md`](../../docs/FIXED_TEST_HAMMING_BUFFER.md)
+for the design, commands, and published outputs.
